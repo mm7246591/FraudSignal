@@ -5,7 +5,7 @@ import type {
 } from '@/types/risk';
 
 // 規則或清單改變時遞增，讓快取失效（規格 9）。
-const ENGINE_VERSION = '4';
+const ENGINE_VERSION = '5';
 // 判定結果的有效期（規格 7 expiresAt、規格 9 TTL）；過期後帳號標示要再看到可疑貼文才會出現。
 const RESULT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 // 等級高低：帳號標示取最高等級，設定頁的「顯示哪些標示」也用它比較。
@@ -212,7 +212,7 @@ const LINK_RULES: LinkRule[] = [
     id: 'platform-lookalike',
     category: 'link',
     strength: 'critical',
-    label: '連結網域仿冒超商物流平台（官方為 myship.7-11.com.tw）',
+    label: '網址仿冒超商賣貨平台，不是官方網站',
     test: (url) =>
       PLATFORM_LOOKALIKE.test(hostOf(url)) &&
       !OFFICIAL_PLATFORM.test(hostOf(url)),
@@ -254,14 +254,14 @@ const LINK_RULES: LinkRule[] = [
     id: 'shortener',
     category: 'link',
     strength: 'weak',
-    label: '縮網址，看不到真正目的地',
+    label: '網址經過縮短，看不出實際連到哪裡',
     test: (url) => SHORTENER_HOSTS.has(hostOf(url)),
   },
   {
     id: 'suspicious-tld',
     category: 'link',
     strength: 'weak',
-    label: '網域使用詐騙常見的頂級網域',
+    label: '網址使用詐騙網站常見的網域結尾',
     test: (url) => SUSPICIOUS_TLD.test(hostOf(url)),
   },
 ];

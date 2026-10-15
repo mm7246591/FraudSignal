@@ -80,7 +80,7 @@ const matchLinks = (urls: URL[], blocklist?: Blocklist): RiskSignal[] =>
         ruleId: 'blocklist',
         category: 'link',
         strength: 'critical',
-        label: `連結網域在 165 涉詐網站清單（${blocklist.fetchedAt} 版）`,
+        label: `網址在 165 涉詐網站清單中（${blocklist.fetchedAt} 版）`,
         evidence: url.href,
         source: 'blocklist',
       });
