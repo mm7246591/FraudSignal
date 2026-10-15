@@ -6,6 +6,7 @@
 
 - 使用 `@crxjs/vite-plugin`；manifest 寫在 `vite.config.ts` 的 `crx({ manifest })`，不另放 `manifest.json`。
 - popup：`index.html` → `src/main.ts` → `src/App.vue`。
+- 擴充功能圖示：原稿 `public/icons/icon.svg`（青→藍→靛漸層盾牌＋放大鏡＋驚嘆號，使用者選定），輸出成 `public/icons/icon-{16,32,48,128}.png`；manifest 的圖示只能用 PNG。改原稿後要重新輸出，128px 四周留 16px 透明邊（Chrome 建議）。
 - content script：`src/content/main.ts`，只注入 `https://www.threads.com/*`。第一版先支援 Threads（使用者決定，規格書原為 Instagram 優先），IG 之後再加。偵測範圍為首頁動態與他人帳號頁（個人頁、單篇貼文含留言），比規格書第 14 節建議的「只限首頁」更廣，也是使用者決定。
 - content script 的非 Vue 模組（平台 Adapter 等）放 `src/content/`，例如 `src/content/threadsAdapter.ts`。
 - 單篇貼文頁上其他帳號的留言當主貼文的佐證（社群反應），規則見 `docs/risk-rules.md` 第 6 節；不爬取按讚者或留言者的個人頁。

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="shield" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#3b82f6"/><stop offset="1" stop-color="#4338ca"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#e2e8f0"/><stop offset="1" stop-color="#94a3b8"/>
+    </linearGradient>
+    <radialGradient id="glass" cx=".38" cy=".32" r=".75">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#e0f2fe"/><stop offset="1" stop-color="#93c5fd"/>
+    </radialGradient>
+    <linearGradient id="handle" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#f8fafc"/><stop offset=".5" stop-color="#cbd5e1"/><stop offset="1" stop-color="#64748b"/>
+    </linearGradient>
+    <linearGradient id="warn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fb923c"/><stop offset="1" stop-color="#dc2626"/>
+    </linearGradient>
+  </defs>
+  <path d="M64 4 114 21v40c0 33-21 54-50 64C35 115 14 94 14 61V21Z" fill="url(#shield)"/>
+  <path d="M64 4 114 21v22H14V21Z" fill="url(#shine)"/>
+  <path d="M64 4 114 21v40c0 33-21 54-50 64C35 115 14 94 14 61V21Z" fill="none" stroke="#4338ca" stroke-opacity=".5" stroke-width="2"/>
+  <path d="M77 74 93 90" stroke="url(#handle)" stroke-width="15" stroke-linecap="round"/>
+  <circle cx="58" cy="55" r="27" fill="url(#glass)" stroke="url(#rim)" stroke-width="9"/>
+  <path d="M41 51a18 18 0 0 1 13-13" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>
+  <rect x="53.5" y="38" width="9" height="21" rx="4.5" fill="url(#warn)"/>
+  <circle cx="58" cy="67.5" r="5.2" fill="url(#warn)"/>
+</svg>

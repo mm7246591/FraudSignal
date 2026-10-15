@@ -12,7 +12,20 @@ export default defineConfig({
         manifest_version: 3,
         name: 'ScamLens',
         version: '0.0.1',
-        action: { default_popup: 'index.html' },
+        // 圖示原稿 public/icons/icon.svg；改了要重新輸出 PNG（128 四周留 16px 透明邊，Chrome 建議）。
+        icons: {
+          16: 'icons/icon-16.png',
+          32: 'icons/icon-32.png',
+          48: 'icons/icon-48.png',
+          128: 'icons/icon-128.png',
+        },
+        action: {
+          default_popup: 'index.html',
+          default_icon: {
+            16: 'icons/icon-16.png',
+            32: 'icons/icon-32.png',
+          },
+        },
         // 規格 6、12：判定快取與忽略清單存在 chrome.storage.local。
         // offscreen：圖片文字辨識在離屏頁執行（docs/risk-rules.md 第 7 節）。兩者安裝時都不會跳警告。
         permissions: ['storage', 'offscreen'],
