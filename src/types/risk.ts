@@ -40,6 +40,8 @@ type RiskResult = {
   level: RiskLevel;
   signals: RiskSignal[];
   analyzedAt: number;
+  /** 超過這個時間就從快取刪除（規格 9 TTL）。 */
+  expiresAt: number;
   engineVersion: string;
 };
 

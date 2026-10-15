@@ -2,6 +2,7 @@ import {
   COMMUNITY_WARNING,
   ENGINE_VERSION,
   LINK_RULES,
+  RESULT_TTL_MS,
   OFFICIAL_COMMERCE_HOSTS,
   SHILL_PRAISE,
   TEXT_RULES,
@@ -246,12 +247,14 @@ const evaluatePost = (
           ),
         ]
       : own;
+  const analyzedAt = Date.now();
   return {
     subjectType: 'post',
     subjectKey: `${post.platform}:${post.postId}`,
     level: decideLevel(signals, warningContext),
     signals,
-    analyzedAt: Date.now(),
+    analyzedAt,
+    expiresAt: analyzedAt + RESULT_TTL_MS,
     engineVersion: ENGINE_VERSION,
   };
 };

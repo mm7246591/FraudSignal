@@ -7,7 +7,7 @@ const RANK: Record<VisibleRiskLevel, number> = {
   high: 3,
 };
 
-// ponytail: 只存在這個分頁的記憶體，重新整理就清空；步驟 4 改存 chrome.storage.local。
+// 帳號標示由貼文判定推導，重新整理後由 main.ts 用快取的判定重建。
 const accounts = new Map<string, AccountRisk>();
 
 const getAccountRisk = (handle: string) => accounts.get(handle);

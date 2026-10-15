@@ -2,6 +2,8 @@ import type { RiskCategory, RiskStrength } from '@/types/risk';
 
 // 規則或清單改變時遞增，讓快取失效（規格 9）。
 const ENGINE_VERSION = '3';
+// 判定結果的有效期（規格 7 expiresAt、規格 9 TTL）；過期後帳號標示要再看到可疑貼文才會出現。
+const RESULT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 // 「不保證獲利」「哪有穩賺不賠」這類否定句不算。
 const NOT = '(?<!不|沒|無|非|別|哪有|沒有|不會|不可能|絕不|並非|不是)';
@@ -276,6 +278,7 @@ const SHILL_PRAISE =
 
 export {
   ENGINE_VERSION,
+  RESULT_TTL_MS,
   TEXT_RULES,
   COMMUNITY_WARNING,
   SHILL_PRAISE,

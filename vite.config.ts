@@ -13,6 +13,8 @@ export default defineConfig({
         name: 'ScamLens',
         version: '0.0.1',
         action: { default_popup: 'index.html' },
+        // 規格 6、12：判定快取與忽略清單存在 chrome.storage.local；storage 權限安裝時不會跳警告。
+        permissions: ['storage'],
         // 規格 8：最小權限，不使用 <all_urls>；第一版先做 Threads。
         content_scripts: [
           {
