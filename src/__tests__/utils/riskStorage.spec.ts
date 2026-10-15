@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { ENGINE_VERSION } from '@/constants/riskRules';
-import { partitionStored } from '@/content/riskStorage';
-import type { StoredPost } from '@/content/riskStorage';
+import {
+  DEFAULT_SETTINGS,
+  parseSettings,
+  partitionStored,
+} from '@/utils/riskStorage';
+import type { StoredPost } from '@/utils/riskStorage';
 
 const NOW = 1_000_000;
 
@@ -67,5 +71,31 @@ describe('partitionStored 快取整理（規格 9）', () => {
     );
     expect(posts).toHaveLength(1000);
     expect(staleKeys).toEqual(['result:threads:P0']);
+  });
+});
+
+describe('parseSettings', () => {
+  it('沒有設定時用預設值：開啟、顯示全部等級', () => {
+    expect(parseSettings(undefined)).toEqual(DEFAULT_SETTINGS);
+    expect(DEFAULT_SETTINGS).toEqual({ enabled: true, minLevel: 'notice' });
+  });
+
+  it('合法的設定原樣讀回', () => {
+    expect(parseSettings({ enabled: false, minLevel: 'high' })).toEqual({
+      enabled: false,
+      minLevel: 'high',
+    });
+  });
+
+  it('逐欄檢查，不合法的欄位用預設值', () => {
+    expect(parseSettings({ enabled: 'no', minLevel: 'unknown' })).toEqual(
+      DEFAULT_SETTINGS
+    );
+    // 物件繼承的屬性不算等級。
+    expect(parseSettings({ minLevel: 'toString' }).minLevel).toBe('notice');
+    expect(parseSettings({ enabled: false, minLevel: 3 })).toEqual({
+      enabled: false,
+      minLevel: 'notice',
+    });
   });
 });

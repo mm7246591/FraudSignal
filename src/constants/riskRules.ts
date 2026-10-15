@@ -1,9 +1,19 @@
-import type { RiskCategory, RiskStrength } from '@/types/risk';
+import type {
+  RiskCategory,
+  RiskStrength,
+  VisibleRiskLevel,
+} from '@/types/risk';
 
 // 規則或清單改變時遞增，讓快取失效（規格 9）。
 const ENGINE_VERSION = '4';
 // 判定結果的有效期（規格 7 expiresAt、規格 9 TTL）；過期後帳號標示要再看到可疑貼文才會出現。
 const RESULT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+// 等級高低：帳號標示取最高等級，設定頁的「顯示哪些標示」也用它比較。
+const LEVEL_RANK: Record<VisibleRiskLevel, number> = {
+  notice: 1,
+  caution: 2,
+  high: 3,
+};
 
 // 「不保證獲利」「哪有穩賺不賠」這類否定句不算。
 const NOT = '(?<!不|沒|無|非|別|哪有|沒有|不會|不可能|絕不|並非|不是)';
@@ -279,6 +289,7 @@ const SHILL_PRAISE =
 export {
   ENGINE_VERSION,
   RESULT_TTL_MS,
+  LEVEL_RANK,
   TEXT_RULES,
   COMMUNITY_WARNING,
   SHILL_PRAISE,

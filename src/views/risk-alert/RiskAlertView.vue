@@ -2,14 +2,24 @@
 import { computed } from 'vue';
 import RiskBadge from '@/components/risk-alert/RiskBadge.vue';
 import RiskReasonPanel from '@/components/risk-alert/RiskReasonPanel.vue';
+import { LEVEL_RANK } from '@/constants/riskRules';
 import type { AccountRisk } from '@/types/risk';
+import type { Settings } from '@/types/settings';
 import { LEVEL_STYLES } from './constants/riskLevel';
 
-const props = defineProps<{ account: AccountRisk; dark: boolean }>();
+const props = defineProps<{
+  account: AccountRisk;
+  display: Pick<Settings, 'minLevel'>;
+  dark: boolean;
+}>();
 const emit = defineEmits<{ ignore: [] }>();
 
 // account 是 reactive，同帳號再被判定到更高等級或更多貼文時自動更新。
 const levelStyle = computed(() => LEVEL_STYLES[props.account.level]);
+// display 也是 reactive：設定頁調高顯示等級時，低於門檻的標示隱藏。
+const visible = computed(
+  () => LEVEL_RANK[props.account.level] >= LEVEL_RANK[props.display.minLevel]
+);
 const posts = computed(() =>
   props.account.posts.map(({ postUrl, level, signals }) => ({
     postUrl,
@@ -22,6 +32,7 @@ const posts = computed(() =>
 <template>
   <!-- 點擊不能冒泡到 Threads：頭像與整篇貼文都是可點擊區塊，會跳頁。 -->
   <span
+    v-if="visible"
     class="inline-flex"
     @click.stop
     @pointerdown.stop
@@ -52,7 +63,7 @@ const posts = computed(() =>
 
 ## 公開介面
 
-- Props：account（AccountRisk，reactive）、dark。
+- Props：account（AccountRisk，reactive）、display（設定頁的 minLevel，reactive）、dark。
 - v-model：無。
 - Emits：ignore；由 `src/content/mountRiskAlert.ts` 掛載時以 onIgnore 接收，忽略帳號並移除畫面上這個帳號的所有標示。
 - 主要依賴：RiskBadge、RiskReasonPanel、`constants/riskLevel.ts`（等級對應的圖示、顏色與文案）。
@@ -62,6 +73,7 @@ const posts = computed(() =>
 - 標示等級取該帳號已看到貼文的最高等級；同帳號的每篇貼文、留言頭像都顯示同一個標示。
 - 點標示開啟原因面板，列出觸發的貼文與原因；按「忽略此帳號」後標示消失，之後這個帳號的貼文都不再標示。
 - 攔截 click 與 pointerdown，避免點標示或面板時觸發 Threads 跳頁。
+- 帳號等級低於設定頁的「顯示哪些標示」（display.minLevel）時不顯示；改設定或帳號等級升高時自動更新。
 
 ## 狀態與限制
 

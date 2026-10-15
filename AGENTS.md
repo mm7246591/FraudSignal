@@ -5,14 +5,14 @@
 ## 擴充功能入口
 
 - 使用 `@crxjs/vite-plugin`；manifest 寫在 `vite.config.ts` 的 `crx({ manifest })`，不另放 `manifest.json`。
-- popup：`index.html` → `src/main.ts` → `src/App.vue`。
+- popup 是設定頁（規格 FR-06）：`index.html` → `src/main.ts` → `src/views/settings/SettingsView.vue`。偵測開關與「顯示哪些標示」存在 chrome.storage.local 的 `settings`（型別 `src/types/settings.ts`），Threads 分頁監聽變更即時生效；取消忽略與清除快取要重新整理分頁才生效。規格 7 的 aiEnabled、urlCheckEnabled、dailyLimit 等 M3 功能做了再加。
 - 擴充功能圖示：原稿 `public/icons/icon.svg`（青→藍→靛漸層盾牌＋放大鏡＋驚嘆號，使用者選定），輸出成 `public/icons/icon-{16,32,48,128}.png`；manifest 的圖示只能用 PNG。改原稿後要重新輸出，128px 四周留 16px 透明邊（Chrome 建議）。
 - content script：`src/content/main.ts`，只注入 `https://www.threads.com/*`。第一版先支援 Threads（使用者決定，規格書原為 Instagram 優先），IG 之後再加。偵測範圍為首頁動態與他人帳號頁（個人頁、單篇貼文含留言），比規格書第 14 節建議的「只限首頁」更廣，也是使用者決定。
 - content script 的非 Vue 模組（平台 Adapter 等）放 `src/content/`，例如 `src/content/threadsAdapter.ts`。
 - 單篇貼文頁上其他帳號的留言當主貼文的佐證（社群反應），規則見 `docs/risk-rules.md` 第 6 節；不爬取按讚者或留言者的個人頁。
 - 圖片文字辨識（使用者決定，規格書沒有）：貼文照片用 Tesseract.js 在本機辨識，文字走同一套規則，細節見 `docs/risk-rules.md` 第 7 節。content script 不能開擴充功能的 worker，流程是 `src/content/imageText.ts` → 背景 `src/background/main.ts`（建立離屏頁、轉送）→ 離屏頁 `offscreen.html` → `src/offscreen/main.ts`。離屏頁不在 manifest 裡，在 `vite.config.ts` 的 `build.rollupOptions.input` 列為入口。需要 `offscreen` 權限與 CSP 的 `'wasm-unsafe-eval'`；語言檔 `public/tessdata/chi_tra.traineddata.gz` 檔名不能改。
 - 帳號標示（使用者決定，規格書第 5 節原本要求有帳號層級證據才標示帳號）：貼文判定有風險時標示作者帳號，等級取該帳號已看到貼文的最高等級，記在 `src/content/accountRisks.ts`。
-- 判定快取與忽略清單存在 chrome.storage.local（manifest 的 `storage` 權限），讀寫集中在 `src/content/riskStorage.ts`：只存有風險、或辨識過圖片文字的貼文判定（後者連同 `imageText`，避免重新辨識），鍵為 `result:<subjectKey>`；分析版本（`ENGINE_VERSION`）不同、超過 `expiresAt`（`RESULT_TTL_MS`，7 天）或超過 1000 筆時，在頁面載入時清除。使用者忽略的帳號記在 `ignoredAccounts`（帳號名稱）；以帳號為單位忽略是使用者決定，規格 US-03／第 7 節原為單篇貼文的 `ignoredPostKeys`。
+- 判定快取與忽略清單存在 chrome.storage.local（manifest 的 `storage` 權限），讀寫集中在 `src/utils/riskStorage.ts`（content script 與設定頁共用）：只存有風險、或辨識過圖片文字的貼文判定（後者連同 `imageText`，避免重新辨識），鍵為 `result:<subjectKey>`；分析版本（`ENGINE_VERSION`）不同、超過 `expiresAt`（`RESULT_TTL_MS`，7 天）或超過 1000 筆時，在頁面載入時清除。使用者忽略的帳號記在 `ignoredAccounts`（帳號名稱）；以帳號為單位忽略是使用者決定，規格 US-03／第 7 節原為單篇貼文的 `ignoredPostKeys`。
 - 標示位置是作者頭像右下角，貼文本身不加標示：`src/content/mountRiskAlert.ts` 在頭像外框建立 Shadow DOM，掛載 `src/views/risk-alert/RiskAlertView.vue`；子元件在 `src/components/risk-alert/`。
 - 文案只陳述「此帳號發過可疑貼文」，不寫「此帳號是詐騙」（規格書第 5 節禁止文案）。
 - 跨模組共用的資料契約（規格書第 7 節）放 `src/types/`，例如 `PostSnapshot` 在 `src/types/post.ts`。
@@ -43,11 +43,13 @@ src/
 ├── constants/               # 全局共用
 ├── types/                   # 全局共用
 └── views/
-    └── risk-alert/
-        ├── RiskAlertView.vue
-        ├── composables/     # 此頁專屬
-        ├── constants/       # 此頁專屬
-        └── types/           # 此頁專屬
+    ├── risk-alert/
+    │   ├── RiskAlertView.vue
+    │   ├── composables/     # 此頁專屬
+    │   ├── constants/       # 此頁專屬
+    │   └── types/           # 此頁專屬
+    └── settings/
+        └── SettingsView.vue
 ```
 
 ## Export 風格

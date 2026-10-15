@@ -1,10 +1,16 @@
 import type { PostSnapshot } from '@/types/post';
 import type { RiskResult } from '@/types/risk';
+import type { Settings } from '@/types/settings';
 import { evaluatePost, loadBlocklist } from '@/utils/riskEngine';
+import {
+  DEFAULT_SETTINGS,
+  loadStoredRisks,
+  onSettingsChanged,
+  saveStoredPost,
+} from '@/utils/riskStorage';
 import { getAccountRisk, recordPostRisk, restoreIgnored } from './accountRisks';
 import { recognizeImages } from './imageText';
-import { syncAccountBadge } from './mountRiskAlert';
-import { loadStoredRisks, saveStoredPost } from './riskStorage';
+import { clearBadges, setMinLevel, syncAccountBadge } from './mountRiskAlert';
 import {
   findPostContainers,
   getPostAuthor,
@@ -19,6 +25,9 @@ const posts = new Map<string, PostSnapshot>();
 const replies = new Map<string, Map<string, PostSnapshot>>();
 // postId → 照片辨識出的文字（docs/risk-rules.md 第 7 節）。
 const imageTexts = new Map<string, string>();
+// 設定頁的偵測開關（US-03 暫停偵測）；暫停時停止觀察貼文，stopFeed 為 undefined。
+let enabled = false;
+let stopFeed: (() => void) | undefined;
 
 const analyze = async (post: PostSnapshot, previous?: RiskResult) => {
   // 清單載入失敗時退回只用本地規則（規格 9）。
@@ -51,7 +60,11 @@ const analyze = async (post: PostSnapshot, previous?: RiskResult) => {
 const markAccount = async (post: PostSnapshot, container?: Element) => {
   const { authorHandle, postUrl } = post;
   const result = await results.get(post.postId);
-  if (result && recordPostRisk(authorHandle, postUrl, result)) {
+  const first =
+    result !== undefined && recordPostRisk(authorHandle, postUrl, result);
+  // 暫停時進行中的分析照樣記錄，只是不掛標示；恢復後重新掃描會補上。
+  if (!enabled) return;
+  if (first) {
     // 帳號第一次被標示：畫面上這個帳號的其他貼文、留言也補上提示。
     findPostContainers()
       .filter((el) => getPostAuthor(el) === authorHandle)
@@ -94,11 +107,36 @@ const readImages = async ({ postId, imageUrls }: PostSnapshot) => {
   reanalyze(postId);
 };
 
+const onPost = (post: PostSnapshot, container: Element) => {
+  posts.set(post.postId, post);
+  if (!results.has(post.postId)) {
+    results.set(post.postId, analyze(post));
+    if (post.imageUrls.length) readImages(post);
+  }
+  markAccount(post, container);
+  // 留言本身也照一般貼文判定（標示留言者），同時當作主貼文的社群反應。
+  const repliedPostId = getRepliedPostId(container);
+  if (repliedPostId) addReply(repliedPostId, post);
+};
+
+// 設定頁改了就生效：暫停時停止觀察並移除標示；恢復時重新掃描，畫面上的貼文會補回標示。
+const applySettings = (settings: Settings) => {
+  setMinLevel(settings.minLevel);
+  ({ enabled } = settings);
+  if (enabled) {
+    stopFeed ??= observeThreadsFeed(onPost);
+    return;
+  }
+  stopFeed?.();
+  stopFeed = undefined;
+  clearBadges();
+};
+
 const start = async () => {
   // 讀不到快取時照常偵測，只是沒有之前的標示（規格 9：例外不阻斷原站）。
   const stored = await loadStoredRisks().catch((error) => {
     console.debug('[ScamLens] 快取讀取失敗', error);
-    return { posts: [], ignoredAccounts: [] };
+    return { posts: [], ignoredAccounts: [], settings: DEFAULT_SETTINGS };
   });
   restoreIgnored(stored.ignoredAccounts);
   // 快取的貼文不再重新分析（US-04），帳號標示先建好，看到該帳號的貼文就會掛上。
@@ -116,17 +154,8 @@ const start = async () => {
     console.info(`[ScamLens] 從快取還原 ${flagged.length} 篇可疑貼文`, flagged);
   }
 
-  observeThreadsFeed((post, container) => {
-    posts.set(post.postId, post);
-    if (!results.has(post.postId)) {
-      results.set(post.postId, analyze(post));
-      if (post.imageUrls.length) readImages(post);
-    }
-    markAccount(post, container);
-    // 留言本身也照一般貼文判定（標示留言者），同時當作主貼文的社群反應。
-    const repliedPostId = getRepliedPostId(container);
-    if (repliedPostId) addReply(repliedPostId, post);
-  });
+  applySettings(stored.settings);
+  onSettingsChanged(applySettings);
 };
 
 start();

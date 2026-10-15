@@ -1,12 +1,7 @@
 import { reactive } from 'vue';
-import type { AccountRisk, RiskResult, VisibleRiskLevel } from '@/types/risk';
-import { saveIgnoredAccounts } from './riskStorage';
-
-const RANK: Record<VisibleRiskLevel, number> = {
-  notice: 1,
-  caution: 2,
-  high: 3,
-};
+import { LEVEL_RANK } from '@/constants/riskRules';
+import type { AccountRisk, RiskResult } from '@/types/risk';
+import { saveIgnoredAccounts } from '@/utils/riskStorage';
 
 // 帳號標示由貼文判定推導，重新整理後由 main.ts 用快取的判定重建。
 const accounts = new Map<string, AccountRisk>();
@@ -42,7 +37,7 @@ const recordPostRisk = (
   const seen = existing.posts.find((post) => post.postUrl === postUrl);
   if (seen) Object.assign(seen, { level, signals });
   else existing.posts.push({ postUrl, level, signals });
-  if (RANK[level] > RANK[existing.level]) existing.level = level;
+  if (LEVEL_RANK[level] > LEVEL_RANK[existing.level]) existing.level = level;
   return false;
 };
 

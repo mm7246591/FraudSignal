@@ -1,5 +1,5 @@
 import { createApp } from 'vue';
-import App from './App.vue';
+import SettingsView from './views/settings/SettingsView.vue';
 import './assets/style.css';
 
-createApp(App).mount('#app');
+createApp(SettingsView).mount('#app');

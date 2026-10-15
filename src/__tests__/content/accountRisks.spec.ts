@@ -7,7 +7,7 @@ import {
 } from '@/content/accountRisks';
 import type { RiskLevel, RiskResult } from '@/types/risk';
 
-vi.mock('@/content/riskStorage', () => ({
+vi.mock('@/utils/riskStorage', () => ({
   saveIgnoredAccounts: vi.fn(() => Promise.resolve()),
 }));
 

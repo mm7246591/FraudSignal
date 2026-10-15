@@ -1,5 +1,6 @@
-import { createApp } from 'vue';
-import type { AccountRisk } from '@/types/risk';
+import { createApp, reactive } from 'vue';
+import type { AccountRisk, VisibleRiskLevel } from '@/types/risk';
+import { DEFAULT_SETTINGS } from '@/utils/riskStorage';
 import RiskAlertView from '@/views/risk-alert/RiskAlertView.vue';
 import styles from '@/assets/style.css?inline';
 import { ignoreAccount } from './accountRisks';
@@ -8,6 +9,18 @@ import { getAvatarFrame } from './threadsAdapter';
 const HOST_ATTR = 'data-scamlens';
 // 與 RiskBadge 的 size-[18px] 一致。
 const BADGE_SIZE = 18;
+
+// 設定頁的「顯示哪些標示」；reactive，改了之後已掛上的標示直接顯示或隱藏，不用重新整理。
+const display = reactive({ minLevel: DEFAULT_SETTINGS.minLevel });
+
+const setMinLevel = (minLevel: VisibleRiskLevel) => {
+  display.minLevel = minLevel;
+};
+
+/** 暫停偵測時移除畫面上所有標示。 */
+const clearBadges = () => {
+  document.querySelectorAll(`[${HOST_ATTR}]`).forEach((host) => host.remove());
+};
 
 // Threads 沒有可靠的深色模式標記，改看貼文主要文字顏色：淺色字代表深色背景。
 const isDarkTheme = (el: Element) => {
@@ -58,9 +71,10 @@ const syncAccountBadge = (
   // ponytail: 節點被 Threads 移除時沒有 unmount；App 很小且只有被標示的帳號才掛，記憶體有問題再處理。
   createApp(RiskAlertView, {
     account,
+    display,
     dark: isDarkTheme(container),
     onIgnore: () => ignore(authorHandle),
   }).mount(root);
 };
 
-export { syncAccountBadge };
+export { setMinLevel, clearBadges, syncAccountBadge };
