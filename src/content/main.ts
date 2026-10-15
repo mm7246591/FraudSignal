@@ -45,7 +45,7 @@ const analyze = async (post: PostSnapshot, previous?: RiskResult) => {
   if (result.level !== previous?.level) {
     const log = result.level === 'unknown' ? console.debug : console.info;
     log(
-      `[ScamLens] ${result.level} @${post.authorHandle}${previous ? '（依留言或圖片文字更新）' : ''}`,
+      `[FraudSignal] ${result.level} @${post.authorHandle}${previous ? '（依留言或圖片文字更新）' : ''}`,
       post.postUrl,
       result.signals,
       { ...post, imageText }
@@ -62,7 +62,7 @@ const analyze = async (post: PostSnapshot, previous?: RiskResult) => {
       kind,
       imageText,
       result,
-    }).catch((error) => console.debug('[ScamLens] 判定儲存失敗', error));
+    }).catch((error) => console.debug('[FraudSignal] 判定儲存失敗', error));
   }
   return result;
 };
@@ -163,7 +163,7 @@ const applySettings = (settings: Settings) => {
 const start = async () => {
   // 讀不到快取時照常偵測，只是沒有之前的標示（規格 9：例外不阻斷原站）。
   const stored = await loadStoredRisks().catch((error) => {
-    console.debug('[ScamLens] 快取讀取失敗', error);
+    console.debug('[FraudSignal] 快取讀取失敗', error);
     return { posts: [], ignoredAccounts: [], settings: DEFAULT_SETTINGS };
   });
   // 快取與忽略清單是各平台共用的，只取這個平台的。
@@ -189,7 +189,10 @@ const start = async () => {
     ({ result }) => result.level !== 'unknown'
   );
   if (flagged.length) {
-    console.info(`[ScamLens] 從快取還原 ${flagged.length} 篇可疑貼文`, flagged);
+    console.info(
+      `[FraudSignal] 從快取還原 ${flagged.length} 篇可疑貼文`,
+      flagged
+    );
   }
 
   applySettings(stored.settings);

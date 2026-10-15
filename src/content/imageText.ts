@@ -34,7 +34,7 @@ const recognize = (url: string) =>
         resolve(response.text);
         return;
       }
-      console.debug('[ScamLens] 圖片文字辨識失敗', url, response);
+      console.debug('[FraudSignal] 圖片文字辨識失敗', url, response);
       resolve(undefined);
     });
     if (!running) next();

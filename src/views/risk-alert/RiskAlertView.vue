@@ -49,14 +49,14 @@ const posts = computed(() =>
     @pointerdown.stop
   >
     <RiskBadge
-      popovertarget="scamlens-reasons"
+      popovertarget="fraudsignal-reasons"
       :label="levelStyle.label"
       :summary="summary"
       :icon="levelStyle.icon"
       :icon-class="levelStyle.iconClass"
     />
     <RiskReasonPanel
-      id="scamlens-reasons"
+      id="fraudsignal-reasons"
       :summary="summary"
       :posts="posts"
       :dark="dark"
@@ -90,6 +90,6 @@ const posts = computed(() =>
 
 - 帳號標示由貼文判定推導，是使用者的決定；規格書第 5 節原本要求有帳號層級證據才標示帳號。
 - 文案只陳述「發過可疑貼文／留言」，不寫「此帳號是詐騙」（規格 5 禁止文案）。
-- 每個頭像各自一個 Shadow DOM，所以 popover id 固定為 `scamlens-reasons` 也不會衝突。
+- 每個頭像各自一個 Shadow DOM，所以 popover id 固定為 `fraudsignal-reasons` 也不會衝突。
 - 帳號標示由 chrome.storage.local 快取的貼文判定還原，重新整理後仍在；判定 7 天後過期，或規則版本（ENGINE_VERSION）更新後失效。
 </spec>

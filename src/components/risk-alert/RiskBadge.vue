@@ -10,9 +10,9 @@ defineProps<{
 <template>
   <button
     type="button"
-    :title="`ScamLens ${label}：${summary}（點擊查看原因）`"
-    :aria-label="`ScamLens ${label}：${summary}，查看原因`"
-    class="block size-[18px] cursor-pointer [anchor-name:--scamlens-badge] hover:scale-110"
+    :title="`FraudSignal ${label}：${summary}（點擊查看原因）`"
+    :aria-label="`FraudSignal ${label}：${summary}，查看原因`"
+    class="block size-[18px] cursor-pointer [anchor-name:--fraudsignal-badge] hover:scale-110"
   >
     <svg
       viewBox="0 -960 960 960"
@@ -41,8 +41,8 @@ defineProps<{
 
 ## 主要行為
 
-- 只顯示 18px 等級圖示；滑過顯示 title「ScamLens 等級：摘要（點擊查看原因）」。
-- 設定 CSS anchor `--scamlens-badge`，讓原因面板定位在圖示下方。
+- 只顯示 18px 等級圖示；滑過顯示 title「FraudSignal 等級：摘要（點擊查看原因）」。
+- 設定 CSS anchor `--fraudsignal-badge`，讓原因面板定位在圖示下方。
 
 ## 狀態與限制
 

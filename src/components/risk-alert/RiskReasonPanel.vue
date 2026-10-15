@@ -35,8 +35,8 @@ const sections = computed(() =>
   <div
     popover
     role="dialog"
-    aria-label="ScamLens 判定原因"
-    class="inset-auto m-0 mt-[4px] max-h-[320px] w-[288px] overflow-y-auto rounded-[12px] border-[1px] p-[12px] text-left text-[13px] leading-[18px] shadow-lg [position-anchor:--scamlens-badge] [position-area:bottom_span-right] [position-try-fallbacks:flip-block,flip-inline]"
+    aria-label="FraudSignal 判定原因"
+    class="inset-auto m-0 mt-[4px] max-h-[320px] w-[288px] overflow-y-auto rounded-[12px] border-[1px] p-[12px] text-left text-[13px] leading-[18px] shadow-lg [position-anchor:--fraudsignal-badge] [position-area:bottom_span-right] [position-try-fallbacks:flip-block,flip-inline]"
     :class="
       dark
         ? 'border-neutral-700 bg-neutral-900 text-neutral-100'
@@ -88,7 +88,7 @@ const sections = computed(() =>
       </ul>
     </section>
     <p class="mt-[12px] text-[12px] leading-[16px] opacity-70">
-      ScamLens 依貼文內容自動判斷，不代表此帳號已確認為詐騙。有疑問請撥 165
+      FraudSignal 依貼文內容自動判斷，不代表此帳號已確認為詐騙。有疑問請撥 165
       反詐騙專線查證。
     </p>
     <button

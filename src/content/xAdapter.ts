@@ -100,7 +100,7 @@ const getPostLink = (container: Element) =>
 const extractPost = (container: Element): PostSnapshot | null => {
   const match = getPostLink(container);
   if (!match) {
-    console.debug('[ScamLens] skip: 找不到貼文連結', container);
+    console.debug('[FraudSignal] skip: 找不到貼文連結', container);
     return null;
   }
   const [, authorHandle, postId] = match;
@@ -128,7 +128,7 @@ const extractPost = (container: Element): PostSnapshot | null => {
     ),
   ];
   if (!visibleText && !outboundUrls.length && !imageUrls.length) {
-    console.debug('[ScamLens] skip: 沒有文字、外部連結或照片', container);
+    console.debug('[FraudSignal] skip: 沒有文字、外部連結或照片', container);
     return null;
   }
   return {

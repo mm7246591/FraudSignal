@@ -1,4 +1,4 @@
-# ScamLens Agent Rules
+# FraudSignal Agent Rules
 
 本檔案適用於整個專案。規格書：`/Users/yan/Downloads/social_risk_extension_spec_v2.pdf`（社群可疑內容即時預警 Chrome Extension）。
 

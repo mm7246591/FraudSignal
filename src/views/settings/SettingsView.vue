@@ -95,7 +95,7 @@ const clearCache = () =>
         alt=""
         class="size-[24px]"
       />
-      <h1 class="text-[15px] font-semibold leading-[20px]">ScamLens</h1>
+      <h1 class="text-[15px] font-semibold leading-[20px]">FraudSignal</h1>
       <span class="ml-auto text-[12px] leading-[16px] opacity-60">
         v{{ version }}
       </span>
@@ -153,7 +153,7 @@ const clearCache = () =>
       <section class="mt-[16px]">
         <SettingSwitch
           label="顯示已檢查的帳號"
-          description="沒發現可疑特徵的帳號也掛灰色勾勾，確認 ScamLens 有在運作；不代表帳號安全"
+          description="沒發現可疑特徵的帳號也掛灰色勾勾，確認 FraudSignal 有在運作；不代表帳號安全"
           :disabled="!settings.enabled"
           :model-value="settings.showChecked"
           @update:model-value="update({ showChecked: $event })"
@@ -268,7 +268,7 @@ const clearCache = () =>
 
 - 開啟時讀取設定、忽略清單與判定快取；讀取時順便清掉過期或版本不符的判定。
 - 偵測開關、「顯示哪些標示」與「顯示已檢查的帳號」改了就寫入 settings；Threads、X 分頁監聽變更，馬上停止或恢復偵測、隱藏或顯示標示。
-- 「顯示已檢查的帳號」預設關閉：開啟後，沒發現可疑特徵的帳號也掛灰色「已看過 N 篇貼文、M 則留言」標示，方便確認 ScamLens 有在運作；不顯示「安全」（規格 US-05、第 5、7 節）。暫停偵測時停用。
+- 「顯示已檢查的帳號」預設關閉：開啟後，沒發現可疑特徵的帳號也掛灰色「已看過 N 篇貼文、M 則留言」標示，方便確認 FraudSignal 有在運作；不顯示「安全」（規格 US-05、第 5、7 節）。暫停偵測時停用。
 - 「顯示哪些標示」三段：全部（提醒以上）、注意以上、只有高風險；暫停偵測時停用。
 - 已忽略的帳號可以逐一取消忽略，前面標平台、帳號名稱連到該平台的個人頁；清除判定快取只刪貼文判定，設定與忽略清單保留。
 - 取消忽略與清除快取不會即時反映在已開啟的分頁，完成後提示重新整理。

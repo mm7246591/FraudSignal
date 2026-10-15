@@ -8,9 +8,9 @@ import styles from '@/assets/style.css?inline';
 import { getCheckedPosts, ignoreAccount } from './accountRisks';
 import { adapter } from './platform';
 
-const HOST_ATTR = 'data-scamlens';
+const HOST_ATTR = 'data-fraudsignal';
 // 標示種類：risk（有風險）、checked（已檢查、未發現可疑）。
-const KIND_ATTR = 'data-scamlens-kind';
+const KIND_ATTR = 'data-fraudsignal-kind';
 // 與 RiskBadge 的 size-[18px] 一致。
 const BADGE_SIZE = 18;
 
@@ -47,7 +47,7 @@ const isDarkTheme = (el: Element) => {
 const ignore = (authorHandle: string) => {
   ignoreAccount(authorHandle);
   addIgnoredAccount({ platform: adapter.platform, handle: authorHandle }).catch(
-    (error) => console.debug('[ScamLens] 忽略清單儲存失敗', error)
+    (error) => console.debug('[FraudSignal] 忽略清單儲存失敗', error)
   );
   document
     .querySelectorAll(`[${HOST_ATTR}="${authorHandle}"]`)

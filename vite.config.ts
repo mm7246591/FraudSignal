@@ -10,7 +10,7 @@ export default defineConfig({
     crx({
       manifest: {
         manifest_version: 3,
-        name: 'ScamLens',
+        name: 'FraudSignal',
         version: '0.0.1',
         // 圖示原稿 public/icons/icon.svg；改了要重新輸出 PNG（128 四周留 16px 透明邊，Chrome 建議）。
         icons: {
