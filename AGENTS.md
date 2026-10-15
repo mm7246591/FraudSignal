@@ -10,7 +10,7 @@
 - content script 的非 Vue 模組（平台 Adapter 等）放 `src/content/`，例如 `src/content/threadsAdapter.ts`。
 - 單篇貼文頁上其他帳號的留言當主貼文的佐證（社群反應），規則見 `docs/risk-rules.md` 第 6 節；不爬取按讚者或留言者的個人頁。
 - 帳號標示（使用者決定，規格書第 5 節原本要求有帳號層級證據才標示帳號）：貼文判定有風險時標示作者帳號，等級取該帳號已看到貼文的最高等級，記在 `src/content/accountRisks.ts`。
-- 判定快取存在 chrome.storage.local（manifest 的 `storage` 權限），讀寫集中在 `src/content/riskStorage.ts`：只存有風險的貼文判定，鍵為 `result:<subjectKey>`；分析版本（`ENGINE_VERSION`）不同、超過 `expiresAt`（`RESULT_TTL_MS`，7 天）或超過 1000 筆時，在頁面載入時清除。
+- 判定快取與忽略清單存在 chrome.storage.local（manifest 的 `storage` 權限），讀寫集中在 `src/content/riskStorage.ts`：只存有風險的貼文判定，鍵為 `result:<subjectKey>`；分析版本（`ENGINE_VERSION`）不同、超過 `expiresAt`（`RESULT_TTL_MS`，7 天）或超過 1000 筆時，在頁面載入時清除。使用者忽略的帳號記在 `ignoredAccounts`（帳號名稱）；以帳號為單位忽略是使用者決定，規格 US-03／第 7 節原為單篇貼文的 `ignoredPostKeys`。
 - 標示位置是作者頭像右下角，貼文本身不加標示：`src/content/mountRiskAlert.ts` 在頭像外框建立 Shadow DOM，掛載 `src/views/risk-alert/RiskAlertView.vue`；子元件在 `src/components/risk-alert/`。
 - 文案只陳述「此帳號發過可疑貼文」，不寫「此帳號是詐騙」（規格書第 5 節禁止文案）。
 - 跨模組共用的資料契約（規格書第 7 節）放 `src/types/`，例如 `PostSnapshot` 在 `src/types/post.ts`。

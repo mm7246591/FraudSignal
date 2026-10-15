@@ -1,0 +1,51 @@
+import { describe, expect, it, vi } from 'vitest';
+import {
+  getAccountRisk,
+  ignoreAccount,
+  recordPostRisk,
+  restoreIgnored,
+} from '@/content/accountRisks';
+import type { RiskLevel, RiskResult } from '@/types/risk';
+
+vi.mock('@/content/riskStorage', () => ({
+  saveIgnoredAccounts: vi.fn(() => Promise.resolve()),
+}));
+
+const result = (postId: string, level: RiskLevel): RiskResult => ({
+  subjectType: 'post',
+  subjectKey: `threads:${postId}`,
+  level,
+  signals: [],
+  analyzedAt: 0,
+  expiresAt: 1,
+  engineVersion: 'test',
+});
+const record = (handle: string, postId: string, level: RiskLevel) =>
+  recordPostRisk(
+    handle,
+    `https://www.threads.com/@${handle}/post/${postId}`,
+    result(postId, level)
+  );
+
+// 模組狀態跨測試共用，每個測試用不同帳號。
+describe('accountRisks 帳號標示與忽略', () => {
+  it('等級取該帳號貼文的最高等級', () => {
+    expect(record('a', 'A1', 'notice')).toBe(true);
+    expect(record('a', 'A2', 'caution')).toBe(false);
+    expect(getAccountRisk('a')?.level).toBe('caution');
+  });
+
+  it('忽略帳號後移除標示，之後的可疑貼文也不再標示', () => {
+    record('b', 'B1', 'high');
+    ignoreAccount('b');
+    expect(getAccountRisk('b')).toBeUndefined();
+    expect(record('b', 'B2', 'high')).toBe(false);
+    expect(getAccountRisk('b')).toBeUndefined();
+  });
+
+  it('還原的忽略清單生效', () => {
+    restoreIgnored(['c']);
+    expect(record('c', 'C1', 'high')).toBe(false);
+    expect(getAccountRisk('c')).toBeUndefined();
+  });
+});

@@ -49,9 +49,9 @@ describe('partitionStored 快取整理（規格 9）', () => {
     ]);
   });
 
-  it('其他鍵不動', () => {
+  it('忽略清單等其他鍵不動', () => {
     const { staleKeys } = partitionStored(
-      { otherSetting: true, ...Object.fromEntries([stored('OK')]) },
+      { ignoredAccounts: ['someone'], ...Object.fromEntries([stored('OK')]) },
       NOW
     );
     expect(staleKeys).toEqual([]);

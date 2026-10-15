@@ -14,6 +14,8 @@ type StoredPost = {
 
 // 每篇一個鍵，新增時不必重寫整份清單。
 const RESULT_PREFIX = 'result:';
+// 使用者決定以帳號為單位忽略；規格 7 原為單篇貼文的 ignoredPostKeys。
+const IGNORED_KEY = 'ignoredAccounts';
 // 規格 9 容量上限；每筆約 1KB，遠低於 chrome.storage.local 的 10MB。
 const MAX_RESULTS = 1000;
 
@@ -45,7 +47,11 @@ const loadStoredRisks = async () => {
   const stored = await chrome.storage.local.get(null);
   const { posts, staleKeys } = partitionStored(stored, Date.now());
   if (staleKeys.length) await chrome.storage.local.remove(staleKeys);
-  return { posts };
+  const ignored = stored[IGNORED_KEY];
+  return {
+    posts,
+    ignoredAccounts: Array.isArray(ignored) ? (ignored as string[]) : [],
+  };
 };
 
 const saveStoredPost = async (post: StoredPost) => {
@@ -54,5 +60,15 @@ const saveStoredPost = async (post: StoredPost) => {
   });
 };
 
-export { partitionStored, loadStoredRisks, saveStoredPost };
+// ponytail: 忽略清單沒有上限也不會過期；每筆只是一個帳號名稱，設定頁（FR-06）再提供清除。
+const saveIgnoredAccounts = async (handles: string[]) => {
+  await chrome.storage.local.set({ [IGNORED_KEY]: handles });
+};
+
+export {
+  partitionStored,
+  loadStoredRisks,
+  saveStoredPost,
+  saveIgnoredAccounts,
+};
 export type { StoredPost };

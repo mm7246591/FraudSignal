@@ -2,6 +2,7 @@ import { createApp } from 'vue';
 import type { AccountRisk } from '@/types/risk';
 import RiskAlertView from '@/views/risk-alert/RiskAlertView.vue';
 import styles from '@/assets/style.css?inline';
+import { ignoreAccount } from './accountRisks';
 import { getAvatarFrame } from './threadsAdapter';
 
 const HOST_ATTR = 'data-scamlens';
@@ -16,9 +17,17 @@ const isDarkTheme = (el: Element) => {
   return (r * 299 + g * 587 + b * 114) / 1000 > 128;
 };
 
+// 忽略帳號後，畫面上這個帳號的所有提示一起移除。
+const ignore = (authorHandle: string) => {
+  ignoreAccount(authorHandle);
+  document
+    .querySelectorAll(`[${HOST_ATTR}="${authorHandle}"]`)
+    .forEach((host) => host.remove());
+};
+
 /**
  * 讓貼文頭像上的提示與作者帳號標示一致：
- * 移除重用節點留下的舊提示；帳號被標示時在頭像右下角掛上提示。
+ * 移除重用節點留下的舊提示或已不再標示的提示；帳號被標示時在頭像右下角掛上提示。
  */
 const syncAccountBadge = (
   container: Element,
@@ -26,7 +35,7 @@ const syncAccountBadge = (
   account?: AccountRisk
 ) => {
   const existing = container.querySelector(`[${HOST_ATTR}]`);
-  if (existing?.getAttribute(HOST_ATTR) === authorHandle) return;
+  if (account && existing?.getAttribute(HOST_ATTR) === authorHandle) return;
   existing?.remove();
   const frame = getAvatarFrame(container, authorHandle);
   if (!account || !frame) return;
@@ -47,9 +56,11 @@ const syncAccountBadge = (
   shadow.append(style, root);
   frame.append(host);
   // ponytail: 節點被 Threads 移除時沒有 unmount；App 很小且只有被標示的帳號才掛，記憶體有問題再處理。
-  createApp(RiskAlertView, { account, dark: isDarkTheme(container) }).mount(
-    root
-  );
+  createApp(RiskAlertView, {
+    account,
+    dark: isDarkTheme(container),
+    onIgnore: () => ignore(authorHandle),
+  }).mount(root);
 };
 
 export { syncAccountBadge };

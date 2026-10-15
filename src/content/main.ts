@@ -1,7 +1,7 @@
 import type { PostSnapshot } from '@/types/post';
 import type { RiskResult } from '@/types/risk';
 import { evaluatePost, loadBlocklist } from '@/utils/riskEngine';
-import { getAccountRisk, recordPostRisk } from './accountRisks';
+import { getAccountRisk, recordPostRisk, restoreIgnored } from './accountRisks';
 import { syncAccountBadge } from './mountRiskAlert';
 import { loadStoredRisks, saveStoredPost } from './riskStorage';
 import {
@@ -82,8 +82,9 @@ const start = async () => {
   // 讀不到快取時照常偵測，只是沒有之前的標示（規格 9：例外不阻斷原站）。
   const stored = await loadStoredRisks().catch((error) => {
     console.debug('[ScamLens] 快取讀取失敗', error);
-    return { posts: [] };
+    return { posts: [], ignoredAccounts: [] };
   });
+  restoreIgnored(stored.ignoredAccounts);
   // 快取的貼文不再重新分析（US-04），帳號標示先建好，看到該帳號的貼文就會掛上。
   stored.posts.forEach(({ postId, authorHandle, postUrl, result }) => {
     results.set(postId, Promise.resolve(result));

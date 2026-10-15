@@ -6,6 +6,7 @@ import type { AccountRisk } from '@/types/risk';
 import { LEVEL_STYLES } from './constants/riskLevel';
 
 const props = defineProps<{ account: AccountRisk; dark: boolean }>();
+const emit = defineEmits<{ ignore: [] }>();
 
 // account 是 reactive，同帳號再被判定到更高等級或更多貼文時自動更新。
 const levelStyle = computed(() => LEVEL_STYLES[props.account.level]);
@@ -37,6 +38,7 @@ const posts = computed(() =>
       :summary="levelStyle.summary"
       :posts="posts"
       :dark="dark"
+      @ignore="emit('ignore')"
     />
   </span>
 </template>
@@ -52,13 +54,13 @@ const posts = computed(() =>
 
 - Props：account（AccountRisk，reactive）、dark。
 - v-model：無。
-- Emits：無。
+- Emits：ignore；由 `src/content/mountRiskAlert.ts` 掛載時以 onIgnore 接收，忽略帳號並移除畫面上這個帳號的所有標示。
 - 主要依賴：RiskBadge、RiskReasonPanel、`constants/riskLevel.ts`（等級對應的圖示、顏色與文案）。
 
 ## 主要行為
 
 - 標示等級取該帳號已看到貼文的最高等級；同帳號的每篇貼文、留言頭像都顯示同一個標示。
-- 點標示開啟原因面板，列出觸發的貼文與原因。
+- 點標示開啟原因面板，列出觸發的貼文與原因；按「忽略此帳號」後標示消失，之後這個帳號的貼文都不再標示。
 - 攔截 click 與 pointerdown，避免點標示或面板時觸發 Threads 跳頁。
 
 ## 狀態與限制

@@ -4,6 +4,7 @@ import type { RiskSignal } from '@/types/risk';
 type FlaggedPost = { postUrl: string; label: string; signals: RiskSignal[] };
 
 defineProps<{ summary: string; posts: FlaggedPost[]; dark: boolean }>();
+const emit = defineEmits<{ ignore: [] }>();
 </script>
 
 <template>
@@ -48,6 +49,13 @@ defineProps<{ summary: string; posts: FlaggedPost[]; dark: boolean }>();
       ScamLens 依貼文內容自動判斷，不代表此帳號已確認為詐騙。有疑問請撥 165
       反詐騙專線查證。
     </p>
+    <button
+      type="button"
+      class="mt-[8px] cursor-pointer text-[12px] font-medium leading-[16px] underline"
+      @click="emit('ignore')"
+    >
+      忽略此帳號，之後不再提示
+    </button>
   </div>
 </template>
 
@@ -62,13 +70,14 @@ defineProps<{ summary: string; posts: FlaggedPost[]; dark: boolean }>();
 
 - Props：summary、posts（每篇的 postUrl、等級文字、signals）、dark。
 - v-model：無。
-- Emits：無。
+- Emits：ignore（使用者按「忽略此帳號」）。
 - 主要依賴：瀏覽器原生 Popover API 與 CSS anchor positioning（Chrome 125 以上）。
 
 ## 主要行為
 
 - 以 `popover` 顯示在頂層，不會被 Threads 的版面裁切；點外面或按 Esc 關閉。
 - 每篇貼文顯示等級與「查看貼文」連結（Threads 站內網址），下方列出訊號說明與原文證據。
+- 底部「忽略此帳號，之後不再提示」只送出 ignore，移除標示與記錄由父層處理（規格 US-03）。
 - 外部連結證據只顯示文字，不可點擊。
 - 底部固定顯示「不代表此帳號已確認為詐騙」與 165 查證說明（規格 5 禁止定性文案）。
 
@@ -77,5 +86,6 @@ defineProps<{ summary: string; posts: FlaggedPost[]; dark: boolean }>();
 - 證據以文字插值渲染，不產生 HTML（規格 8 防 XSS）。
 - 內容超過高度時面板內捲動。
 - 依 dark 切換背景與文字色；樣式使用 Tailwind utility class，固定間距、尺寸、圓角、字級與線寬寫明確 px，在 Shadow DOM 內載入。
-- 「忽略此提示」尚未實作，等快取與設定儲存完成後再加。
+- 以帳號為單位忽略是使用者決定，規格 US-03／第 7 節原為忽略單篇貼文。
+- 忽略後目前無法在面板內復原，之後由設定頁（FR-06）提供清除。
 </spec>
