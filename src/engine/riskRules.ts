@@ -5,7 +5,7 @@ import type {
 } from '@/types/risk';
 
 // 規則或清單改變時遞增，讓快取失效（規格 9）。
-const ENGINE_VERSION = '5';
+const ENGINE_VERSION = '6';
 // 判定結果的有效期（規格 7 expiresAt、規格 9 TTL）；過期後帳號標示要再看到可疑貼文才會出現。
 const RESULT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 // 等級高低：帳號標示取最高等級，設定頁的「顯示哪些標示」也用它比較。
@@ -274,7 +274,7 @@ const OFFICIAL_COMMERCE_HOSTS = new Set([
   'tw.bid.yahoo.com',
   'tw.buy.yahoo.com',
 ]);
-// 反向訊號：貼文本身在提醒防詐時，只靠文字訊號最多「提醒」。
+// 反向訊號：貼文本身在提醒防詐時，只靠文字訊號不標示。
 const WARNING_CONTEXT =
   /詐騙|小心|提醒大家|防詐|被騙|騙子|詐團|騙局|(?<!不)騙(你|人)|假裝|別亂點|不要亂點|別點|不要點|不要相信|受害|報案|(撥打|打|報)165|165(專線|反詐)|反詐/;
 

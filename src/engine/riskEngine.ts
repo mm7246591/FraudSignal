@@ -211,11 +211,11 @@ const decideLevel = (signals: RiskSignal[], warningContext: boolean) => {
   else if (strongCategories.size >= 1 && categories.size >= 2)
     level = 'caution';
   else if (strongCategories.size >= 1) level = 'notice';
-  // 防詐提醒貼文會引用詐騙話術；沒有連結證據時只給「提醒」。
+  // 防詐提醒、分析詐騙手法的貼文會引用詐騙話術；沒有連結證據時不標示。
   const textOnly = signals.every(
     ({ source }) => source === 'text' || source === 'image'
   );
-  return warningContext && textOnly && level !== 'unknown' ? 'notice' : level;
+  return warningContext && textOnly ? 'unknown' : level;
 };
 
 /**

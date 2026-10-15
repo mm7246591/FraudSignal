@@ -64,10 +64,10 @@ describe('evaluatePost 判定等級', () => {
     expect(levelOf('哪有穩賺不賠的事')).toBe('unknown');
   });
 
-  it('防詐提醒貼文最多提醒', () => {
+  it('防詐提醒貼文不標示', () => {
     expect(
       levelOf('提醒大家！有人說保證獲利叫你加LINE投資群組，小心詐騙')
-    ).toBe('notice');
+    ).toBe('unknown');
   });
 });
 
@@ -161,10 +161,18 @@ describe('evaluatePost 防詐語境', () => {
     expect(levelOf('免費送 iPhone，需完成實名認證')).toBe('caution');
   });
 
-  it('「不要相信」等提醒字眼：最多提醒', () => {
+  it('「不要相信」等提醒字眼：不標示', () => {
     expect(levelOf('有人假裝賣家說保證獲利，叫你加入投資群組，不要相信')).toBe(
-      'notice'
+      'unknown'
     );
+  });
+
+  it('分析詐騙手法的長文不標示（2026-10-15 X 實際誤判）', () => {
+    expect(
+      levelOf(
+        '合資探究推特詐騙集團手法的故事\n推特私訊她們之後，基本上不會得到回應\n即便有回應，也是要求你到TG去私'
+      )
+    ).toBe('unknown');
   });
 
   it('「不騙你」是詐騙常見說法，不算防詐語境', () => {
@@ -210,7 +218,7 @@ describe('evaluatePost 留言（社群反應）', () => {
         '提醒大家！有人說保證獲利叫你加 LINE 投資群組，小心詐騙',
         comments('我也被騙了', '騙子好多')
       )
-    ).toBe('notice');
+    ).toBe('unknown');
   });
 
   it('作者自己的留言不算', () => {
@@ -292,9 +300,9 @@ describe('evaluatePost 圖片文字', () => {
     expect(signals.map(({ source }) => source)).toEqual(['text']);
   });
 
-  it('圖片在提醒防詐 → 最多提醒', () => {
+  it('圖片在提醒防詐 → 不標示', () => {
     expect(evaluate('', '小心詐騙！有人說保證獲利叫你加入投資群組').level).toBe(
-      'notice'
+      'unknown'
     );
   });
 });
