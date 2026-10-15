@@ -1,0 +1,14 @@
+plugins:
+  - prettier-plugin-tailwindcss
+tabWidth: 2 # 定義縮排的空格數量
+useTabs: false # 使用空格還是制表符進行縮排
+singleQuote: true # 使用單引號還是雙引號括住字串
+semi: true # 在語句結尾添加分號
+printWidth: 80 # 定義每行的最大寬度
+htmlWhitespaceSensitivity: 'ignore' # 定義 HTML 中空格的敏感度
+endOfLine: 'lf' # 定義換行符的類型
+bracketSpacing: true # 在括號周圍添加空格
+trailingComma: 'es5' # 定義尾隨逗號的規則
+quoteProps: 'as-needed' # 定義引用屬性的規則
+bracketSameLine: false # 定義括號是否與前一行的內容放在同一行
+singleAttributePerLine: true # 定義每個屬性是否單獨佔據一行
