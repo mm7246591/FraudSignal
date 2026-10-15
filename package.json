@@ -12,7 +12,8 @@
     "format": "prettier --write \"src/**/*.{ts,js,vue,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,js,vue,css}\"",
     "test": "vitest run --passWithNoTests",
-    "type-check": "vue-tsc -b"
+    "type-check": "vue-tsc -b",
+    "update:blocklist": "node scripts/update-blocklist.mjs"
   },
   "dependencies": {
     "vue": "^3.5.42"
