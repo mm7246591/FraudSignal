@@ -150,11 +150,11 @@
   - 貼文本身在提醒防詐（詐騙、小心、被騙、騙子、騙你、假裝、別亂點、不要相信、受害、報案、165 等），而且所有訊號都來自文字時，最多「提醒」。「不騙你」「不騙人」是詐騙常見說法，不算防詐語境。冒名帳號會故意加反詐字眼取信，所以連結證據照樣計分。
 - 敏感度（FR-06 設定頁「顯示哪些標示」）：只調整顯示，不改判定。可選全部（提醒以上）、注意以上、只有高風險；帳號等級低於門檻時隱藏標示，判定與快取照舊。
 
-實作：`src/constants/riskRules.ts`（字詞與網址規則）、`src/utils/riskEngine.ts`（正規化、比對、判定）。
+實作：`src/engine/riskRules.ts`（字詞與網址規則）、`src/engine/riskEngine.ts`（正規化、比對、判定）。
 
 ### 5.2 165 清單實作
 
-- `npm run update:blocklist` 下載兩份 CSV，輸出 `src/constants/blockedDomains.txt`。2026-10-15 版有 115,595 個網域，約 2MB。
+- `npm run update:blocklist` 下載兩份 CSV，輸出 `src/engine/blockedDomains.txt`。2026-10-15 版有 115,595 個網域，約 2MB。
 - 打包成獨立 chunk，第一次遇到有外部連結的貼文才載入。
 - **只比對完整網域**，不合併子網域：清單有上萬筆是同一主網域的子網域，但用「最後兩段」合併會誤收 `com.tw`、`it.com` 這類公共後綴，以及 `lovable.app`、`myqcloud.com` 這類共用主機，正常網站會被誤判。
 - 腳本會排除 threads.com、line.me、myship.7-11.com.tw 等常用網域，防止資料錯誤造成大量誤判。
@@ -178,7 +178,7 @@
 | 任何貼文附 `myship-711-com-tw-xxx.shop` | 仿冒平台網域（並在 165 清單） | 高風險 |
 | 「賣場放這邊」＋`myship.7-11.com.tw` 官方連結 | 無 | 資料不足 |
 
-以上範例與 11 則 Threads 上實際看到的正常貼文都寫在 `src/__tests__/utils/riskEngine.spec.ts`。
+以上範例與 11 則 Threads 上實際看到的正常貼文都寫在 `src/__tests__/engine/riskEngine.spec.ts`。
 
 ## 6. 留言與網軍（步驟 3b）
 
@@ -216,7 +216,7 @@
 - 其他情況，社群反應算一個新類別。例如「只能先匯款＋私訊」（兩個弱訊號）加上 2 個帳號說「騙子」（強），就是 2 個類別、1 個強訊號 → 注意。
 - 留言是捲動時陸續出現的，每多一則就重新判定主貼文。訊號只會增加，等級不會下降。
 
-實作：`src/constants/riskRules.ts`（`COMMUNITY_WARNING`、`SHILL_PRAISE`）、`src/utils/riskEngine.ts`（`matchComments`）、`src/content/threadsAdapter.ts`（`getRepliedPostId`）、`src/content/main.ts`（收集留言、重新判定）。
+實作：`src/engine/riskRules.ts`（`COMMUNITY_WARNING`、`SHILL_PRAISE`）、`src/engine/riskEngine.ts`（`matchComments`）、`src/content/threadsAdapter.ts`（`getRepliedPostId`）、`src/content/main.ts`（收集留言、重新判定）。
 
 ## 7. 圖片文字（OCR）
 
@@ -254,7 +254,7 @@
 - 辨識過圖片的貼文，不論有沒有風險都存進快取，連同辨識出的文字（`imageText`），重新整理後不用重新辨識；留言讓主貼文重新判定時也會一起算。
 - 中文模型辨識英文圖片時會出現零散的錯字；規則比對的是完整詞組，零散錯字不會誤觸。
 
-實作：`src/content/threadsAdapter.ts`（`pickSrcsetUrl`、照片網址）、`src/content/imageText.ts`（佇列）、`src/background/main.ts`（建立離屏頁）、`src/offscreen/main.ts`（Tesseract）、`src/utils/riskEngine.ts`（`imageText` 參數）。
+實作：`src/content/threadsAdapter.ts`（`pickSrcsetUrl`、照片網址）、`src/content/imageText.ts`（佇列）、`src/background/main.ts`（建立離屏頁）、`src/offscreen/main.ts`（Tesseract）、`src/engine/riskEngine.ts`（`imageText` 參數）。
 
 ## 8. 這版不處理
 - **冒名名人清單**：名單要持續維護，也無法驗證帳號真假。

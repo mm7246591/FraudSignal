@@ -1,7 +1,7 @@
 import type { PostSnapshot } from '@/types/post';
 import type { RiskResult } from '@/types/risk';
 import type { Settings } from '@/types/settings';
-import { evaluatePost, loadBlocklist } from '@/utils/riskEngine';
+import { evaluatePost, loadBlocklist } from '@/engine/riskEngine';
 import {
   DEFAULT_SETTINGS,
   loadStoredRisks,

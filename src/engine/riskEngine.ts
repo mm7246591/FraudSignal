@@ -8,7 +8,7 @@ import {
   TEXT_RULES,
   WARNING_CONTEXT,
   hostOf,
-} from '@/constants/riskRules';
+} from '@/engine/riskRules';
 import type { PostSnapshot } from '@/types/post';
 import type { RiskLevel, RiskResult, RiskSignal } from '@/types/risk';
 
@@ -283,7 +283,7 @@ let blocklistPromise: Promise<Blocklist> | undefined;
 
 /** 清單約 2MB，獨立成 chunk，第一次遇到外部連結才載入。 */
 const loadBlocklist = () => {
-  blocklistPromise ??= import('@/constants/blockedDomains.txt?raw').then(
+  blocklistPromise ??= import('./blockedDomains.txt?raw').then(
     ({ default: raw }) => parseBlocklist(raw)
   );
   return blocklistPromise;

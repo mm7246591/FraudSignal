@@ -8,7 +8,7 @@ const ensureOffscreen = async () => {
   // 同時多個請求只建立一次；建立失敗下次重試。
   creating ??= chrome.offscreen
     .createDocument({
-      url: 'offscreen.html',
+      url: 'src/offscreen/index.html',
       reasons: [chrome.offscreen.Reason.WORKERS],
       justification: '在本機辨識貼文圖片中的文字',
     })

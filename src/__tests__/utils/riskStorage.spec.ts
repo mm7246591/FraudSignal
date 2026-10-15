@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ENGINE_VERSION } from '@/constants/riskRules';
+import { ENGINE_VERSION } from '@/engine/riskRules';
 import {
   DEFAULT_SETTINGS,
   parseSettings,

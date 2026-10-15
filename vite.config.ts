@@ -20,7 +20,7 @@ export default defineConfig({
           128: 'icons/icon-128.png',
         },
         action: {
-          default_popup: 'index.html',
+          default_popup: 'src/popup/index.html',
           default_icon: {
             16: 'icons/icon-16.png',
             32: 'icons/icon-32.png',
@@ -59,7 +59,9 @@ export default defineConfig({
     },
   ],
   // 離屏頁不在 manifest 裡，要另外列為入口才會打包。
-  build: { rollupOptions: { input: { offscreen: 'offscreen.html' } } },
+  build: {
+    rollupOptions: { input: { offscreen: 'src/offscreen/index.html' } },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

@@ -1,4 +1,4 @@
-// 下載 165 涉詐網站清單，輸出 src/constants/blockedDomains.txt（每行一個網域，# 開頭為說明）。
+// 下載 165 涉詐網站清單，輸出 src/engine/blockedDomains.txt（每行一個網域，# 開頭為說明）。
 // 用法：npm run update:blocklist
 import { mkdirSync, writeFileSync } from 'node:fs';
 
@@ -30,7 +30,7 @@ const NEVER_BLOCK = [
   '7-11.com.tw',
   'shopee.tw',
 ];
-const OUTPUT = new URL('../src/constants/blockedDomains.txt', import.meta.url);
+const OUTPUT = new URL('../src/engine/blockedDomains.txt', import.meta.url);
 
 const toHost = (value) => {
   try {

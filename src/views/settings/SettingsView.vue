@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { ENGINE_VERSION } from '@/constants/riskRules';
+import { ENGINE_VERSION } from '@/engine/riskRules';
 import type { VisibleRiskLevel } from '@/types/risk';
 import type { Settings } from '@/types/settings';
 import type { StoredPost } from '@/utils/riskStorage';

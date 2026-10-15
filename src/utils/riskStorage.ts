@@ -1,4 +1,4 @@
-import { ENGINE_VERSION, LEVEL_RANK } from '@/constants/riskRules';
+import { ENGINE_VERSION, LEVEL_RANK } from '@/engine/riskRules';
 import type { RiskResult } from '@/types/risk';
 import type { Settings } from '@/types/settings';
 

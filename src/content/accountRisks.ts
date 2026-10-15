@@ -1,5 +1,5 @@
 import { reactive } from 'vue';
-import { LEVEL_RANK } from '@/constants/riskRules';
+import { LEVEL_RANK } from '@/engine/riskRules';
 import type { AccountRisk, RiskResult } from '@/types/risk';
 import { saveIgnoredAccounts } from '@/utils/riskStorage';
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PostSnapshot } from '@/types/post';
-import { evaluatePost, parseBlocklist } from '@/utils/riskEngine';
+import { evaluatePost, parseBlocklist } from '@/engine/riskEngine';
 
 const post = (visibleText: string, outboundUrls: string[] = []) =>
   ({

@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import RiskBadge from '@/components/risk-alert/RiskBadge.vue';
 import RiskReasonPanel from '@/components/risk-alert/RiskReasonPanel.vue';
-import { LEVEL_RANK } from '@/constants/riskRules';
+import { LEVEL_RANK } from '@/engine/riskRules';
 import type { AccountRisk } from '@/types/risk';
 import type { Settings } from '@/types/settings';
 import { LEVEL_STYLES } from './constants/riskLevel';
