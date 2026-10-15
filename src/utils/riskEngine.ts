@@ -215,7 +215,7 @@ const decideLevel = (signals: RiskSignal[], warningContext: boolean) => {
 };
 
 /** comments：單篇貼文頁上看得到的留言，只當佐證（docs/risk-rules.md 第 6 節）。 */
-export const evaluatePost = (
+const evaluatePost = (
   post: PostSnapshot,
   blocklist?: Blocklist,
   comments: Comment[] = []
@@ -256,7 +256,7 @@ export const evaluatePost = (
   };
 };
 
-export const parseBlocklist = (raw: string): Blocklist => ({
+const parseBlocklist = (raw: string): Blocklist => ({
   hosts: new Set(
     raw.split('\n').filter((line) => line && !line.startsWith('#'))
   ),
@@ -266,9 +266,11 @@ export const parseBlocklist = (raw: string): Blocklist => ({
 let blocklistPromise: Promise<Blocklist> | undefined;
 
 /** 清單約 2MB，獨立成 chunk，第一次遇到外部連結才載入。 */
-export const loadBlocklist = () => {
+const loadBlocklist = () => {
   blocklistPromise ??= import('@/constants/blockedDomains.txt?raw').then(
     ({ default: raw }) => parseBlocklist(raw)
   );
   return blocklistPromise;
 };
+
+export { evaluatePost, parseBlocklist, loadBlocklist };

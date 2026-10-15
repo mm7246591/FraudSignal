@@ -8,7 +8,7 @@ const REDIRECT_HOST = /^l\.threads\.(com|net)$/;
 const NON_BODY = 'a, time, [role="button"]';
 
 /** 外部連結：解開 l.threads.com 轉址；站內或非 http(s) 連結回傳 null。 */
-export const toOutboundUrl = (href: string): string | null => {
+const toOutboundUrl = (href: string): string | null => {
   let url: URL;
   try {
     url = new URL(href, 'https://www.threads.com');
@@ -104,23 +104,20 @@ const isSupportedPage = () => {
   return pathname === '/' || pathname.startsWith('/@');
 };
 
-export const findPostContainers = () => [
-  ...document.querySelectorAll(POST_SELECTOR),
-];
+const findPostContainers = () => [...document.querySelectorAll(POST_SELECTOR)];
 
 const getPostLink = (container: Element) =>
   POST_PATH.exec(
     container.querySelector('time')?.closest('a')?.getAttribute('href') ?? ''
   );
 
-export const getPostAuthor = (container: Element) =>
-  getPostLink(container)?.[1];
+const getPostAuthor = (container: Element) => getPostLink(container)?.[1];
 
 /**
  * 單篇貼文頁上的留言：跟主貼文在同一個對話區塊、排在主貼文之後（之前的是上層串文），回傳主貼文 postId。
  * 不在單篇貼文頁、找不到主貼文或不是留言時回傳 undefined。
  */
-export const getRepliedPostId = (container: Element) => {
+const getRepliedPostId = (container: Element) => {
   const postId = POST_PATH.exec(window.location.pathname)?.[2];
   if (!postId) return undefined;
   // querySelectorAll 依文件順序排列。
@@ -142,7 +139,7 @@ export const getRepliedPostId = (container: Element) => {
  * 作者頭像外框（36×36 的 div，包住頭像連結），提示掛在它右下角。
  * 找不到（節點已換成別人的貼文）時回傳 null。
  */
-export const getAvatarFrame = (container: Element, authorHandle: string) =>
+const getAvatarFrame = (container: Element, authorHandle: string) =>
   [...container.querySelectorAll(`a[href="/@${authorHandle}"]`)].find((link) =>
     link.querySelector('img')
   )?.parentElement ?? null;
@@ -151,7 +148,7 @@ export const getAvatarFrame = (container: Element, authorHandle: string) =>
  * 貼文每次進入視窗都回呼（Threads 會重新渲染節點，提示要能補回）；去重由呼叫端以 postId 處理。
  * DOM 變動批次掃描。回傳停止函式。
  */
-export const observeThreadsFeed = (
+const observeThreadsFeed = (
   onPost: (post: PostSnapshot, container: Element) => void
 ) => {
   const intersection = new IntersectionObserver((entries) => {
@@ -191,4 +188,13 @@ export const observeThreadsFeed = (
     mutation.disconnect();
     intersection.disconnect();
   };
+};
+
+export {
+  toOutboundUrl,
+  findPostContainers,
+  getPostAuthor,
+  getRepliedPostId,
+  getAvatarFrame,
+  observeThreadsFeed,
 };

@@ -10,14 +10,14 @@ const RANK: Record<VisibleRiskLevel, number> = {
 // ponytail: 只存在這個分頁的記憶體，重新整理就清空；步驟 4 改存 chrome.storage.local。
 const accounts = new Map<string, AccountRisk>();
 
-export const getAccountRisk = (handle: string) => accounts.get(handle);
+const getAccountRisk = (handle: string) => accounts.get(handle);
 
 /**
  * 記錄一篇貼文的判定到作者帳號；回傳是否為這個帳號第一次被標示。
  * 同一篇再次判定（看到更多留言）時覆蓋該篇結果；留言只會增加訊號，等級不會下降。
  * 帳號物件是 reactive，等級升高時已掛上的提示會自動更新。
  */
-export const recordPostRisk = (
+const recordPostRisk = (
   handle: string,
   postUrl: string,
   result: RiskResult
@@ -38,3 +38,5 @@ export const recordPostRisk = (
   if (RANK[level] > RANK[existing.level]) existing.level = level;
   return false;
 };
+
+export { getAccountRisk, recordPostRisk };

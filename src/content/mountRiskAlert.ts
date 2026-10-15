@@ -20,7 +20,7 @@ const isDarkTheme = (el: Element) => {
  * 讓貼文頭像上的提示與作者帳號標示一致：
  * 移除重用節點留下的舊提示；帳號被標示時在頭像右下角掛上提示。
  */
-export const syncAccountBadge = (
+const syncAccountBadge = (
   container: Element,
   authorHandle: string,
   account?: AccountRisk
@@ -51,3 +51,5 @@ export const syncAccountBadge = (
     root
   );
 };
+
+export { syncAccountBadge };

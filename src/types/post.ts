@@ -1,5 +1,5 @@
 /** 規格 7：可見貼文的正規化資料。 */
-export type PostSnapshot = {
+type PostSnapshot = {
   platform: 'threads';
   postId: string;
   postUrl: string;
@@ -8,3 +8,5 @@ export type PostSnapshot = {
   outboundUrls: string[];
   observedAt: number;
 };
+
+export type { PostSnapshot };
