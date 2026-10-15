@@ -58,6 +58,12 @@ export default defineConfig({
       },
     },
   ],
+  // 擴充功能頁的網址沒有埠號，HMR 要明確指定，否則 WebSocket 會連到 localhost:（無埠號）。
+  server: {
+    port: 5173,
+    strictPort: true,
+    hmr: { port: 5173 },
+  },
   // 離屏頁不在 manifest 裡，要另外列為入口才會打包。
   build: {
     rollupOptions: { input: { offscreen: 'src/offscreen/index.html' } },
