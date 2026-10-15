@@ -104,8 +104,26 @@ const isSupportedPage = () => {
   return pathname === '/' || pathname.startsWith('/@');
 };
 
+export const findPostContainers = () => [
+  ...document.querySelectorAll(POST_SELECTOR),
+];
+
+export const getPostAuthor = (container: Element) =>
+  POST_PATH.exec(
+    container.querySelector('time')?.closest('a')?.getAttribute('href') ?? ''
+  )?.[1];
+
 /**
- * 貼文每次進入視窗都回呼（Threads 會重新渲染節點）；去重由呼叫端以 postId 處理。
+ * 作者頭像外框（36×36 的 div，包住頭像連結），提示掛在它右下角。
+ * 找不到（節點已換成別人的貼文）時回傳 null。
+ */
+export const getAvatarFrame = (container: Element, authorHandle: string) =>
+  [...container.querySelectorAll(`a[href="/@${authorHandle}"]`)].find((link) =>
+    link.querySelector('img')
+  )?.parentElement ?? null;
+
+/**
+ * 貼文每次進入視窗都回呼（Threads 會重新渲染節點，提示要能補回）；去重由呼叫端以 postId 處理。
  * DOM 變動批次掃描。回傳停止函式。
  */
 export const observeThreadsFeed = (

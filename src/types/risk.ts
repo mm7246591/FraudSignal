@@ -4,6 +4,9 @@
  */
 export type RiskLevel = 'high' | 'caution' | 'notice' | 'unknown';
 
+/** 會在畫面上顯示提示的等級。 */
+export type VisibleRiskLevel = Exclude<RiskLevel, 'unknown'>;
+
 /** 訊號類別：同一類別再多訊號也不會單獨觸發「注意」以上。 */
 export type RiskCategory = 'lure' | 'offPlatform' | 'payment' | 'link';
 
@@ -18,6 +21,16 @@ export type RiskSignal = {
   /** 觸發的原文片段或網址。 */
   evidence: string;
   source: 'text' | 'link' | 'blocklist';
+};
+
+/**
+ * 帳號標示：由貼文判定推導（使用者決定：發過可疑貼文的帳號就標示），
+ * 等級取這個帳號已看到貼文的最高等級。
+ */
+export type AccountRisk = {
+  handle: string;
+  level: VisibleRiskLevel;
+  posts: { postUrl: string; level: VisibleRiskLevel; signals: RiskSignal[] }[];
 };
 
 /** 規格 7：風險判定結果。 */
