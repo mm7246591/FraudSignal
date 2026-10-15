@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   getAccountRisk,
+  getCheckedPosts,
   ignoreAccount,
   recordPostRisk,
   restoreIgnored,
@@ -47,5 +48,30 @@ describe('accountRisks 帳號標示與忽略', () => {
     restoreIgnored(['c']);
     expect(record('c', 'C1', 'high')).toBe(false);
     expect(getAccountRisk('c')).toBeUndefined();
+  });
+});
+
+describe('accountRisks 已檢查的貼文', () => {
+  it('沒發現可疑的貼文也記成已檢查，同一篇只算一次', () => {
+    record('d', 'D1', 'unknown');
+    record('d', 'D1', 'unknown');
+    record('d', 'D2', 'unknown');
+    expect(getCheckedPosts('d')?.size).toBe(2);
+    expect(getAccountRisk('d')).toBeUndefined();
+  });
+
+  it('有風險的貼文也算在已檢查篇數內', () => {
+    record('e', 'E1', 'unknown');
+    record('e', 'E2', 'high');
+    expect(getCheckedPosts('e')?.size).toBe(2);
+    expect(getAccountRisk('e')?.level).toBe('high');
+  });
+
+  it('忽略的帳號不記錄，忽略時清掉已檢查紀錄', () => {
+    record('f', 'F1', 'unknown');
+    ignoreAccount('f');
+    expect(getCheckedPosts('f')).toBeUndefined();
+    record('f', 'F2', 'unknown');
+    expect(getCheckedPosts('f')).toBeUndefined();
   });
 });

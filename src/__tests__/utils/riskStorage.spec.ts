@@ -77,14 +77,17 @@ describe('partitionStored 快取整理（規格 9）', () => {
 describe('parseSettings', () => {
   it('沒有設定時用預設值：開啟、顯示全部等級', () => {
     expect(parseSettings(undefined)).toEqual(DEFAULT_SETTINGS);
-    expect(DEFAULT_SETTINGS).toEqual({ enabled: true, minLevel: 'notice' });
+    expect(DEFAULT_SETTINGS).toEqual({
+      enabled: true,
+      minLevel: 'notice',
+      showChecked: false,
+    });
   });
 
   it('合法的設定原樣讀回', () => {
-    expect(parseSettings({ enabled: false, minLevel: 'high' })).toEqual({
-      enabled: false,
-      minLevel: 'high',
-    });
+    expect(
+      parseSettings({ enabled: false, minLevel: 'high', showChecked: true })
+    ).toEqual({ enabled: false, minLevel: 'high', showChecked: true });
   });
 
   it('逐欄檢查，不合法的欄位用預設值', () => {
@@ -93,9 +96,8 @@ describe('parseSettings', () => {
     );
     // 物件繼承的屬性不算等級。
     expect(parseSettings({ minLevel: 'toString' }).minLevel).toBe('notice');
-    expect(parseSettings({ enabled: false, minLevel: 3 })).toEqual({
-      enabled: false,
-      minLevel: 'notice',
-    });
+    expect(
+      parseSettings({ enabled: false, minLevel: 3, showChecked: 'yes' })
+    ).toEqual({ enabled: false, minLevel: 'notice', showChecked: false });
   });
 });

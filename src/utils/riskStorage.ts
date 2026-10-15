@@ -23,7 +23,11 @@ const IGNORED_KEY = 'ignoredAccounts';
 const MAX_RESULTS = 1000;
 const SETTINGS_KEY = 'settings';
 // 預設開啟、顯示全部等級；規格 2.3 誤報率達標前不公開預設開啟，這版只給自己與朋友測試。
-const DEFAULT_SETTINGS: Settings = { enabled: true, minLevel: 'notice' };
+const DEFAULT_SETTINGS: Settings = {
+  enabled: true,
+  minLevel: 'notice',
+  showChecked: false,
+};
 
 /**
  * 分出還能用的判定與要刪除的鍵：分析版本不同、已過期、資料格式不對，
@@ -50,13 +54,17 @@ const partitionStored = (stored: Record<string, unknown>, now: number) => {
 
 /** 存的設定可能是舊版或被手動改過，逐欄檢查，不合法的用預設值。 */
 const parseSettings = (raw: unknown): Settings => {
-  const { enabled, minLevel } = (raw ?? {}) as Partial<Settings>;
+  const { enabled, minLevel, showChecked } = (raw ?? {}) as Partial<Settings>;
   return {
     enabled: typeof enabled === 'boolean' ? enabled : DEFAULT_SETTINGS.enabled,
     minLevel:
       typeof minLevel === 'string' && Object.hasOwn(LEVEL_RANK, minLevel)
         ? minLevel
         : DEFAULT_SETTINGS.minLevel,
+    showChecked:
+      typeof showChecked === 'boolean'
+        ? showChecked
+        : DEFAULT_SETTINGS.showChecked,
   };
 };
 

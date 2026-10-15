@@ -10,7 +10,7 @@ import {
 } from '@/utils/riskStorage';
 import { getAccountRisk, recordPostRisk, restoreIgnored } from './accountRisks';
 import { recognizeImages } from './imageText';
-import { clearBadges, setMinLevel, syncAccountBadge } from './mountRiskAlert';
+import { clearBadges, setDisplay, syncAccountBadge } from './mountRiskAlert';
 import {
   findPostContainers,
   getPostAuthor,
@@ -119,12 +119,21 @@ const onPost = (post: PostSnapshot, container: Element) => {
   if (repliedPostId) addReply(repliedPostId, post);
 };
 
+/** 依目前設定重新同步畫面上所有貼文的標示（切換「顯示已檢查」時補上或移除灰色標示）。 */
+const syncAllBadges = () => {
+  findPostContainers().forEach((el) => {
+    const handle = getPostAuthor(el);
+    if (handle) syncAccountBadge(el, handle, getAccountRisk(handle));
+  });
+};
+
 // 設定頁改了就生效：暫停時停止觀察並移除標示；恢復時重新掃描，畫面上的貼文會補回標示。
 const applySettings = (settings: Settings) => {
-  setMinLevel(settings.minLevel);
+  setDisplay(settings);
   ({ enabled } = settings);
   if (enabled) {
     stopFeed ??= observeThreadsFeed(onPost);
+    syncAllBadges();
     return;
   }
   stopFeed?.();

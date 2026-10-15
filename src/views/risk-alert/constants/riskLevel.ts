@@ -35,4 +35,13 @@ const LEVEL_STYLES: Record<VisibleRiskLevel, LevelStyle> = {
   },
 };
 
-export { LEVEL_STYLES };
+// 沒發現可疑特徵的帳號（設定頁開啟「顯示已檢查的帳號」才顯示）。不用盾牌、不用綠色，
+// 避免被看成「安全認證」（規格 US-05、第 5、7 節）；neutral-500 在淺色與深色背景的對比都 ≥ 3:1。
+const CHECKED_STYLE: Omit<LevelStyle, 'summary'> = {
+  label: '已檢查',
+  // check_circle
+  icon: 'm424-408-86-86q-11-11-28-11t-28 11q-11 11-11 28t11 28l114 114q12 12 28 12t28-12l226-226q11-11 11-28t-11-28q-11-11-28-11t-28 11L424-408Zm56 328q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z',
+  iconClass: 'text-neutral-500',
+};
+
+export { LEVEL_STYLES, CHECKED_STYLE };

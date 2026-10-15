@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import SettingSwitch from '@/components/settings/SettingSwitch.vue';
 import { ENGINE_VERSION } from '@/engine/riskRules';
 import type { VisibleRiskLevel } from '@/types/risk';
 import type { Settings } from '@/types/settings';
@@ -103,29 +104,16 @@ const clearCache = () =>
 
     <template v-if="loaded">
       <section class="mt-[16px]">
-        <label
-          class="flex cursor-pointer items-center justify-between gap-[12px]"
-        >
-          <span>
-            <span class="block font-medium">偵測 Threads 貼文</span>
-            <span class="block text-[12px] leading-[16px] opacity-70">
-              {{
-                settings.enabled
-                  ? '瀏覽時自動檢查貼文與圖片'
-                  : '已暫停，畫面上的標示已移除'
-              }}
-            </span>
-          </span>
-          <input
-            type="checkbox"
-            role="switch"
-            :checked="settings.enabled"
-            class="relative h-[20px] w-[36px] shrink-0 cursor-pointer appearance-none rounded-full bg-neutral-300 transition-colors before:absolute before:left-[2px] before:top-[2px] before:size-[16px] before:rounded-full before:bg-white before:shadow before:transition-transform before:content-[''] checked:bg-blue-600 checked:before:translate-x-[16px] focus-visible:outline focus-visible:outline-[2px] focus-visible:outline-offset-[2px] focus-visible:outline-blue-600 dark:bg-neutral-600"
-            @change="
-              update({ enabled: ($event.target as HTMLInputElement).checked })
-            "
-          />
-        </label>
+        <SettingSwitch
+          label="偵測 Threads 貼文"
+          :description="
+            settings.enabled
+              ? '瀏覽時自動檢查貼文與圖片'
+              : '已暫停，畫面上的標示已移除'
+          "
+          :model-value="settings.enabled"
+          @update:model-value="update({ enabled: $event })"
+        />
       </section>
 
       <fieldset
@@ -154,6 +142,16 @@ const clearCache = () =>
           </label>
         </div>
       </fieldset>
+
+      <section class="mt-[16px]">
+        <SettingSwitch
+          label="顯示已檢查的帳號"
+          description="沒發現可疑特徵的帳號也掛灰色勾勾，確認 ScamLens 有在運作；不代表帳號安全"
+          :disabled="!settings.enabled"
+          :model-value="settings.showChecked"
+          @update:model-value="update({ showChecked: $event })"
+        />
+      </section>
 
       <section class="mt-[16px]">
         <h2 class="font-medium">
@@ -252,12 +250,13 @@ const clearCache = () =>
 - Props：無。
 - v-model：無。
 - Emits：無。
-- 主要依賴：`src/utils/riskStorage.ts`（讀寫 chrome.storage.local 的設定、忽略清單與判定快取）、`ENGINE_VERSION`。
+- 主要依賴：SettingSwitch、`src/utils/riskStorage.ts`（讀寫 chrome.storage.local 的設定、忽略清單與判定快取）、`ENGINE_VERSION`。
 
 ## 主要行為
 
 - 開啟時讀取設定、忽略清單與判定快取；讀取時順便清掉過期或版本不符的判定。
-- 偵測開關與「顯示哪些標示」改了就寫入 settings；Threads 分頁監聽變更，馬上停止或恢復偵測、隱藏或顯示標示。
+- 偵測開關、「顯示哪些標示」與「顯示已檢查的帳號」改了就寫入 settings；Threads 分頁監聽變更，馬上停止或恢復偵測、隱藏或顯示標示。
+- 「顯示已檢查的帳號」預設關閉：開啟後，沒發現可疑特徵的帳號也掛灰色「已看過 N 篇貼文」標示，方便確認 ScamLens 有在運作；不顯示「安全」（規格 US-05、第 5、7 節）。暫停偵測時停用。
 - 「顯示哪些標示」三段：全部（提醒以上）、注意以上、只有高風險；暫停偵測時停用。
 - 已忽略的帳號可以逐一取消忽略，帳號名稱連到 Threads 個人頁；清除判定快取只刪貼文判定，設定與忽略清單保留。
 - 取消忽略與清除快取不會即時反映在已開啟的分頁，完成後提示重新整理。
@@ -266,7 +265,7 @@ const clearCache = () =>
 ## 狀態與限制
 
 - 規格 7 的 aiEnabled、urlCheckEnabled、dailyLimit 屬於還沒做的 M3 功能，這版沒有對應設定。
-- 開關用原生 checkbox（role="switch"）、等級用原生 radio，鍵盤可操作；依系統深淺色切換配色。
+- 開關用 SettingSwitch（原生 checkbox，role="switch"）、等級用原生 radio，鍵盤可操作；依系統深淺色切換配色。
 - 樣式使用 Tailwind utility class，固定寬度 320px，間距、尺寸、圓角、字級、行高與線寬寫明確 px。
 - 底部固定顯示「不代表帳號已確認為詐騙」與 165 查證說明（規格 5 禁止定性文案）。
 </spec>
