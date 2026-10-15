@@ -30,11 +30,11 @@ const PLATFORMS: Platform[] = ['threads', 'x'];
 // 規格 9 容量上限；每筆約 1KB，遠低於 chrome.storage.local 的 10MB。
 const MAX_RESULTS = 1000;
 const SETTINGS_KEY = 'settings';
-// 預設開啟、顯示全部等級；規格 2.3 誤報率達標前不公開預設開啟，這版只給自己與朋友測試。
+// 預設開啟、顯示全部等級與已檢查的帳號；規格 2.3 誤報率達標前不公開預設開啟，這版只給自己與朋友測試。
 const DEFAULT_SETTINGS: Settings = {
   enabled: true,
   minLevel: 'notice',
-  showChecked: false,
+  showChecked: true,
 };
 
 /**

@@ -76,12 +76,12 @@ describe('partitionStored 快取整理（規格 9）', () => {
 });
 
 describe('parseSettings', () => {
-  it('沒有設定時用預設值：開啟、顯示全部等級', () => {
+  it('沒有設定時用預設值：開啟、顯示全部等級與已檢查的帳號', () => {
     expect(parseSettings(undefined)).toEqual(DEFAULT_SETTINGS);
     expect(DEFAULT_SETTINGS).toEqual({
       enabled: true,
       minLevel: 'notice',
-      showChecked: false,
+      showChecked: true,
     });
   });
 
@@ -99,7 +99,7 @@ describe('parseSettings', () => {
     expect(parseSettings({ minLevel: 'toString' }).minLevel).toBe('notice');
     expect(
       parseSettings({ enabled: false, minLevel: 3, showChecked: 'yes' })
-    ).toEqual({ enabled: false, minLevel: 'notice', showChecked: false });
+    ).toEqual({ enabled: false, minLevel: 'notice', showChecked: true });
   });
 });
 
