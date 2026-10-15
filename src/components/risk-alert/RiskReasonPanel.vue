@@ -11,7 +11,7 @@ defineProps<{ summary: string; posts: FlaggedPost[]; dark: boolean }>();
     popover
     role="dialog"
     aria-label="ScamLens 判定原因"
-    class="inset-auto m-0 mt-1 max-h-80 w-72 overflow-y-auto rounded-xl border p-3 text-left text-[13px] leading-snug shadow-lg [position-anchor:--scamlens-badge] [position-area:bottom_span-right] [position-try-fallbacks:flip-block,flip-inline]"
+    class="inset-auto m-0 mt-[4px] max-h-[320px] w-[288px] overflow-y-auto rounded-[12px] border-[1px] p-[12px] text-left text-[13px] leading-[18px] shadow-lg [position-anchor:--scamlens-badge] [position-area:bottom_span-right] [position-try-fallbacks:flip-block,flip-inline]"
     :class="
       dark
         ? 'border-neutral-700 bg-neutral-900 text-neutral-100'
@@ -22,19 +22,19 @@ defineProps<{ summary: string; posts: FlaggedPost[]; dark: boolean }>();
     <section
       v-for="post in posts"
       :key="post.postUrl"
-      class="mt-3 border-t pt-2"
+      class="mt-[12px] border-t-[1px] pt-[8px]"
       :class="dark ? 'border-neutral-700' : 'border-neutral-200'"
     >
       <p class="flex items-center justify-between font-medium">
         {{ post.label }}
         <a
           :href="post.postUrl"
-          class="text-xs font-normal underline"
+          class="text-[12px] font-normal leading-[16px] underline"
         >
           查看貼文
         </a>
       </p>
-      <ul class="mt-1 space-y-1.5">
+      <ul class="mt-[4px] space-y-[6px]">
         <li
           v-for="signal in post.signals"
           :key="`${signal.ruleId}:${signal.evidence}`"
@@ -44,7 +44,7 @@ defineProps<{ summary: string; posts: FlaggedPost[]; dark: boolean }>();
         </li>
       </ul>
     </section>
-    <p class="mt-3 text-xs opacity-70">
+    <p class="mt-[12px] text-[12px] leading-[16px] opacity-70">
       ScamLens 依貼文內容自動判斷，不代表此帳號已確認為詐騙。有疑問請撥 165
       反詐騙專線查證。
     </p>
@@ -76,6 +76,6 @@ defineProps<{ summary: string; posts: FlaggedPost[]; dark: boolean }>();
 
 - 證據以文字插值渲染，不產生 HTML（規格 8 防 XSS）。
 - 內容超過高度時面板內捲動。
-- 依 dark 切換背景與文字色；樣式使用 Tailwind utility class，在 Shadow DOM 內載入。
+- 依 dark 切換背景與文字色；樣式使用 Tailwind utility class，固定間距、尺寸、圓角、字級與線寬寫明確 px，在 Shadow DOM 內載入。
 - 「忽略此提示」尚未實作，等快取與設定儲存完成後再加。
 </spec>
