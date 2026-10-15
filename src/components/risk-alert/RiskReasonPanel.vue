@@ -1,10 +1,28 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { RiskSignal } from '@/types/risk';
 
 type FlaggedPost = { postUrl: string; label: string; signals: RiskSignal[] };
 
-defineProps<{ summary: string; posts: FlaggedPost[]; dark: boolean }>();
+const props = defineProps<{
+  summary: string;
+  posts: FlaggedPost[];
+  dark: boolean;
+}>();
 const emit = defineEmits<{ ignore: [] }>();
+
+// 文字、圖片的原文本身看得懂，只列原文（使用者決定拿掉原因說明，太長）；
+// 連結、165 清單、留言的證據是網址或別人的留言，要靠說明才知道為什麼可疑，保留說明。
+const isQuoteOnly = ({ source }: RiskSignal) =>
+  source === 'text' || source === 'image';
+
+const sections = computed(() =>
+  props.posts.map((post) => ({
+    ...post,
+    quotes: post.signals.filter(isQuoteOnly),
+    explained: post.signals.filter((signal) => !isQuoteOnly(signal)),
+  }))
+);
 </script>
 
 <template>
@@ -21,7 +39,7 @@ const emit = defineEmits<{ ignore: [] }>();
   >
     <p class="font-semibold">{{ summary }}</p>
     <section
-      v-for="post in posts"
+      v-for="post in sections"
       :key="post.postUrl"
       class="mt-[12px] border-t-[1px] pt-[8px]"
       :class="dark ? 'border-neutral-700' : 'border-neutral-200'"
@@ -35,17 +53,31 @@ const emit = defineEmits<{ ignore: [] }>();
           查看貼文
         </a>
       </p>
-      <ul class="mt-[4px] space-y-[6px]">
+      <ul
+        v-if="post.quotes.length"
+        class="mt-[6px] flex flex-wrap gap-[4px]"
+      >
         <li
-          v-for="signal in post.signals"
+          v-for="signal in post.quotes"
+          :key="`${signal.ruleId}:${signal.evidence}`"
+          class="break-all rounded-[6px] px-[6px] py-[2px] text-[12px] leading-[16px]"
+          :class="dark ? 'bg-neutral-800' : 'bg-neutral-100'"
+        >
+          {{ signal.source === 'image' ? '圖片文字：' : '' }}「{{
+            signal.evidence
+          }}」
+        </li>
+      </ul>
+      <ul
+        v-if="post.explained.length"
+        class="mt-[6px] space-y-[6px]"
+      >
+        <li
+          v-for="signal in post.explained"
           :key="`${signal.ruleId}:${signal.evidence}`"
         >
           <p>{{ signal.label }}</p>
-          <p class="break-all opacity-70">
-            {{ signal.source === 'image' ? '圖片文字：' : '' }}「{{
-              signal.evidence
-            }}」
-          </p>
+          <p class="break-all opacity-70">「{{ signal.evidence }}」</p>
         </li>
       </ul>
     </section>
@@ -80,7 +112,9 @@ const emit = defineEmits<{ ignore: [] }>();
 ## 主要行為
 
 - 以 `popover` 顯示在頂層，不會被 Threads 的版面裁切；點外面或按 Esc 關閉。
-- 每篇貼文顯示等級與「查看貼文」連結（Threads 站內網址），下方列出訊號說明與原文證據；證據來自貼文照片時前面標「圖片文字：」。
+- 每篇貼文顯示等級與「查看貼文」連結（Threads 站內網址），下方列出證據：
+  - 文字與圖片訊號只列原文，排成一排；來自貼文照片時前面標「圖片文字：」。
+  - 連結、165 清單與留言訊號列出說明與證據，證據是網址或留言，沒有說明看不出為什麼可疑。
 - 底部「忽略此帳號，之後不再提示」只送出 ignore，移除標示與記錄由父層處理（規格 US-03）。
 - 外部連結證據只顯示文字，不可點擊。
 - 底部固定顯示「不代表此帳號已確認為詐騙」與 165 查證說明（規格 5 禁止定性文案）。
@@ -91,5 +125,6 @@ const emit = defineEmits<{ ignore: [] }>();
 - 內容超過高度時面板內捲動。
 - 依 dark 切換背景與文字色；樣式使用 Tailwind utility class，固定間距、尺寸、圓角、字級與線寬寫明確 px，在 Shadow DOM 內載入。
 - 以帳號為單位忽略是使用者決定，規格 US-03／第 7 節原為忽略單篇貼文。
+- 文字與圖片訊號不列原因說明是使用者決定（說明太長）；規格 US-02 要求顯示規則類別，這兩種只顯示觸發的原文。
 - 忽略後無法在面板內復原，要到設定頁（popup）的「已忽略的帳號」取消忽略。
 </spec>
