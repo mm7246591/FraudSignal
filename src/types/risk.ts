@@ -1,3 +1,5 @@
+import type { PostKind } from './post';
+
 /**
  * 判定等級，依把握程度由高到低（規則見 docs/risk-rules.md 第 5 節）。
  * unknown 是資料不足，不代表安全。
@@ -26,12 +28,17 @@ type RiskSignal = {
 
 /**
  * 帳號標示：由貼文判定推導（使用者決定：發過可疑貼文的帳號就標示），
- * 等級取這個帳號已看到貼文的最高等級。
+ * 等級取這個帳號已看到貼文的最高等級。posts 包含有風險的留言，kind 區分貼文或留言。
  */
 type AccountRisk = {
   handle: string;
   level: VisibleRiskLevel;
-  posts: { postUrl: string; level: VisibleRiskLevel; signals: RiskSignal[] }[];
+  posts: {
+    postUrl: string;
+    kind: PostKind;
+    level: VisibleRiskLevel;
+    signals: RiskSignal[];
+  }[];
 };
 
 /** 規格 7：風險判定結果。 */

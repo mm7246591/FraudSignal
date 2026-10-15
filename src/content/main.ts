@@ -1,4 +1,4 @@
-import type { PostSnapshot } from '@/types/post';
+import type { PostKind, PostSnapshot } from '@/types/post';
 import type { RiskResult } from '@/types/risk';
 import type { Settings } from '@/types/settings';
 import { evaluatePost, loadBlocklist } from '@/engine/riskEngine';
@@ -8,7 +8,12 @@ import {
   onSettingsChanged,
   saveStoredPost,
 } from '@/utils/riskStorage';
-import { getAccountRisk, recordPostRisk, restoreIgnored } from './accountRisks';
+import {
+  getAccountRisk,
+  markChecked,
+  recordPostRisk,
+  restoreIgnored,
+} from './accountRisks';
 import { recognizeImages } from './imageText';
 import { clearBadges, setDisplay, syncAccountBadge } from './mountRiskAlert';
 import {
@@ -23,6 +28,8 @@ const results = new Map<string, Promise<RiskResult>>();
 const posts = new Map<string, PostSnapshot>();
 // 單篇貼文頁的留言：主貼文 postId → 留言 postId → 留言。
 const replies = new Map<string, Map<string, PostSnapshot>>();
+// postId → 貼文或留言（原因面板的文案用）。
+const kinds = new Map<string, PostKind>();
 // postId → 照片辨識出的文字（docs/risk-rules.md 第 7 節）。
 const imageTexts = new Map<string, string>();
 // 設定頁的偵測開關（US-03 暫停偵測）；暫停時停止觀察貼文，stopFeed 為 undefined。
@@ -50,9 +57,15 @@ const analyze = async (post: PostSnapshot, previous?: RiskResult) => {
   // ponytail: 沒風險的不存，本地規則重算比讀寫 storage 快；圖片辨識很慢，辨識過的一律存。
   if (result.level !== 'unknown' || imageText !== undefined) {
     const { postId, authorHandle, postUrl } = post;
-    saveStoredPost({ postId, authorHandle, postUrl, imageText, result }).catch(
-      (error) => console.debug('[ScamLens] 判定儲存失敗', error)
-    );
+    const kind = kinds.get(postId);
+    saveStoredPost({
+      postId,
+      authorHandle,
+      postUrl,
+      kind,
+      imageText,
+      result,
+    }).catch((error) => console.debug('[ScamLens] 判定儲存失敗', error));
   }
   return result;
 };
@@ -60,8 +73,9 @@ const analyze = async (post: PostSnapshot, previous?: RiskResult) => {
 const markAccount = async (post: PostSnapshot, container?: Element) => {
   const { authorHandle, postUrl } = post;
   const result = await results.get(post.postId);
+  const kind = kinds.get(post.postId) ?? 'post';
   const first =
-    result !== undefined && recordPostRisk(authorHandle, postUrl, result);
+    result !== undefined && recordPostRisk(authorHandle, postUrl, result, kind);
   // 暫停時進行中的分析照樣記錄，只是不掛標示；恢復後重新掃描會補上。
   if (!enabled) return;
   if (first) {
@@ -109,13 +123,21 @@ const readImages = async ({ postId, imageUrls }: PostSnapshot) => {
 
 const onPost = (post: PostSnapshot, container: Element) => {
   posts.set(post.postId, post);
+  // 留言本身也照一般貼文判定（標示留言者），同時當作主貼文的社群反應。
+  const repliedPostId = getRepliedPostId(container);
+  // 作者在自己貼文下的回覆是串文的一部分：算貼文、不另外計數（使用者決定），
+  // docs/risk-rules.md 6.2 也不當留言。
+  const ownThread =
+    repliedPostId !== undefined &&
+    posts.get(repliedPostId)?.authorHandle === post.authorHandle;
+  const kind = repliedPostId && !ownThread ? 'reply' : 'post';
+  kinds.set(post.postId, kind);
   if (!results.has(post.postId)) {
     results.set(post.postId, analyze(post));
     if (post.imageUrls.length) readImages(post);
   }
+  if (!ownThread) markChecked(post.authorHandle, post.postUrl, kind);
   markAccount(post, container);
-  // 留言本身也照一般貼文判定（標示留言者），同時當作主貼文的社群反應。
-  const repliedPostId = getRepliedPostId(container);
   if (repliedPostId) addReply(repliedPostId, post);
 };
 
@@ -150,10 +172,11 @@ const start = async () => {
   restoreIgnored(stored.ignoredAccounts);
   // 快取的貼文不再重新分析（US-04），帳號標示先建好，看到該帳號的貼文就會掛上。
   stored.posts.forEach(
-    ({ postId, authorHandle, postUrl, imageText, result }) => {
+    ({ postId, authorHandle, postUrl, kind = 'post', imageText, result }) => {
       results.set(postId, Promise.resolve(result));
+      kinds.set(postId, kind);
       if (imageText !== undefined) imageTexts.set(postId, imageText);
-      recordPostRisk(authorHandle, postUrl, result);
+      recordPostRisk(authorHandle, postUrl, result, kind);
     }
   );
   const flagged = stored.posts.filter(

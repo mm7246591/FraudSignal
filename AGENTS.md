@@ -14,9 +14,9 @@
 - 帳號標示（使用者決定，規格書第 5 節原本要求有帳號層級證據才標示帳號）：貼文判定有風險時標示作者帳號，等級取該帳號已看到貼文的最高等級，記在 `src/content/accountRisks.ts`。
 - 判定快取與忽略清單存在 chrome.storage.local（manifest 的 `storage` 權限），讀寫集中在 `src/utils/riskStorage.ts`（content script 與設定頁共用）：只存有風險、或辨識過圖片文字的貼文判定（後者連同 `imageText`，避免重新辨識），鍵為 `result:<subjectKey>`；分析版本（`ENGINE_VERSION`）不同、超過 `expiresAt`（`RESULT_TTL_MS`，7 天）或超過 1000 筆時，在頁面載入時清除。使用者忽略的帳號記在 `ignoredAccounts`（帳號名稱）；以帳號為單位忽略是使用者決定，規格 US-03／第 7 節原為單篇貼文的 `ignoredPostKeys`。
 - 標示位置是作者頭像右下角，貼文本身不加標示：`src/content/mountRiskAlert.ts` 在頭像外框建立 Shadow DOM，掛載 `src/views/risk-alert/RiskAlertView.vue`；子元件在 `src/components/risk-alert/`。
-- 文案只陳述「此帳號發過可疑貼文」，不寫「此帳號是詐騙」（規格書第 5 節禁止文案）。
+- 文案只陳述「此帳號發過可疑貼文」（可疑的是留言時寫「留言」），不寫「此帳號是詐騙」（規格書第 5 節禁止文案）。
 - 原因面板（`src/components/risk-alert/RiskReasonPanel.vue`）的文字與圖片訊號只列觸發的原文、不列原因說明（使用者決定，說明太長；規格 US-02 原要求顯示規則類別）；連結、165 清單與留言訊號保留說明，因為證據是網址或留言，沒有說明看不出為什麼可疑。
-- 不顯示「安全」（規格 US-05、第 5、7 節）。設定頁開啟「顯示已檢查的帳號」時，沒發現可疑的帳號掛灰色「已看過 N 篇貼文」（`src/views/risk-alert/CheckedAccountView.vue`），文案註明不代表安全；這是使用者同意的做法，不要改成綠色或「安全」。
+- 不顯示「安全」（規格 US-05、第 5、7 節）。設定頁開啟「顯示已檢查的帳號」時，沒發現可疑的帳號掛灰色「已看過 N 篇貼文、M 則留言」（`src/views/risk-alert/CheckedAccountView.vue`），文案註明不代表安全；這是使用者同意的做法，不要改成綠色或「安全」。
 - 跨模組共用的資料契約（規格書第 7 節）放 `src/types/`，例如 `PostSnapshot` 在 `src/types/post.ts`。
 - 測試放 `src/__tests__/`，路徑鏡像來源結構，例如 `src/__tests__/content/threadsAdapter.spec.ts`。
 - 風險規則的研究、字詞清單與判定邏輯以 `docs/risk-rules.md` 為準；程式在 `src/engine/`（規則 `riskRules.ts`、判定 `riskEngine.ts`、165 清單）。新增或調整規則時同步更新該文件與測試，並遞增 `ENGINE_VERSION`。

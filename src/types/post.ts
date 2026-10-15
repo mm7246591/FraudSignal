@@ -11,4 +11,7 @@ type PostSnapshot = {
   observedAt: number;
 };
 
-export type { PostSnapshot };
+/** 貼文或留言；單篇貼文頁主貼文下方、其他帳號的回覆算留言，作者自己的回覆（串文）與其他頁面都算貼文。 */
+type PostKind = 'post' | 'reply';
+
+export type { PostSnapshot, PostKind };

@@ -3,6 +3,7 @@ import {
   getAccountRisk,
   getCheckedPosts,
   ignoreAccount,
+  markChecked,
   recordPostRisk,
   restoreIgnored,
 } from '@/content/accountRisks';
@@ -25,7 +26,8 @@ const record = (handle: string, postId: string, level: RiskLevel) =>
   recordPostRisk(
     handle,
     `https://www.threads.com/@${handle}/post/${postId}`,
-    result(postId, level)
+    result(postId, level),
+    'post'
   );
 
 // 模組狀態跨測試共用，每個測試用不同帳號。
@@ -51,27 +53,31 @@ describe('accountRisks 帳號標示與忽略', () => {
   });
 });
 
-describe('accountRisks 已檢查的貼文', () => {
-  it('沒發現可疑的貼文也記成已檢查，同一篇只算一次', () => {
-    record('d', 'D1', 'unknown');
-    record('d', 'D1', 'unknown');
-    record('d', 'D2', 'unknown');
-    expect(getCheckedPosts('d')?.size).toBe(2);
-    expect(getAccountRisk('d')).toBeUndefined();
+describe('accountRisks 已檢查的貼文與留言', () => {
+  const url = (handle: string, postId: string) =>
+    `https://www.threads.com/@${handle}/post/${postId}`;
+
+  it('分開記貼文與留言，同一則只算一次', () => {
+    markChecked('d', url('d', 'D1'), 'post');
+    markChecked('d', url('d', 'D1'), 'post');
+    markChecked('d', url('d', 'D2'), 'reply');
+    expect([...(getCheckedPosts('d')?.values() ?? [])]).toEqual([
+      'post',
+      'reply',
+    ]);
   });
 
-  it('有風險的貼文也算在已檢查篇數內', () => {
-    record('e', 'E1', 'unknown');
-    record('e', 'E2', 'high');
-    expect(getCheckedPosts('e')?.size).toBe(2);
+  it('判定結果不影響已檢查紀錄（快取還原的不算看過）', () => {
+    record('e', 'E1', 'high');
+    expect(getCheckedPosts('e')).toBeUndefined();
     expect(getAccountRisk('e')?.level).toBe('high');
   });
 
   it('忽略的帳號不記錄，忽略時清掉已檢查紀錄', () => {
-    record('f', 'F1', 'unknown');
+    markChecked('f', url('f', 'F1'), 'post');
     ignoreAccount('f');
     expect(getCheckedPosts('f')).toBeUndefined();
-    record('f', 'F2', 'unknown');
+    markChecked('f', url('f', 'F2'), 'post');
     expect(getCheckedPosts('f')).toBeUndefined();
   });
 });

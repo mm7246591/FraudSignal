@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import type { PostKind } from '@/types/post';
 import type { RiskSignal } from '@/types/risk';
 
-type FlaggedPost = { postUrl: string; label: string; signals: RiskSignal[] };
+type FlaggedPost = {
+  postUrl: string;
+  kind: PostKind;
+  label: string;
+  signals: RiskSignal[];
+};
 
 const props = defineProps<{
   summary: string;
@@ -50,7 +56,7 @@ const sections = computed(() =>
           :href="post.postUrl"
           class="text-[12px] font-normal leading-[16px] underline"
         >
-          查看貼文
+          {{ post.kind === 'reply' ? '查看留言' : '查看貼文' }}
         </a>
       </p>
       <ul
@@ -104,7 +110,7 @@ const sections = computed(() =>
 
 ## 公開介面
 
-- Props：summary、posts（每篇的 postUrl、等級文字、signals）、dark。
+- Props：summary、posts（每篇的 postUrl、kind（貼文或留言）、等級文字、signals）、dark。
 - v-model：無。
 - Emits：ignore（使用者按「忽略此帳號」）。
 - 主要依賴：瀏覽器原生 Popover API 與 CSS anchor positioning（Chrome 125 以上）。
@@ -112,7 +118,7 @@ const sections = computed(() =>
 ## 主要行為
 
 - 以 `popover` 顯示在頂層，不會被 Threads 的版面裁切；點外面或按 Esc 關閉。
-- 每篇貼文顯示等級與「查看貼文」連結（Threads 站內網址），下方列出證據：
+- 每篇顯示等級與「查看貼文」連結（留言寫「查看留言」，Threads 站內網址），下方列出證據：
   - 文字與圖片訊號只列原文，排成一排；來自貼文照片時前面標「圖片文字：」。
   - 連結、165 清單與留言訊號列出說明與證據，證據是網址或留言，沒有說明看不出為什麼可疑。
 - 底部「忽略此帳號，之後不再提示」只送出 ignore，移除標示與記錄由父層處理（規格 US-03）。

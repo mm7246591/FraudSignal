@@ -1,14 +1,24 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import RiskBadge from '@/components/risk-alert/RiskBadge.vue';
+import type { PostKind } from '@/types/post';
 import { CHECKED_STYLE } from './constants/riskLevel';
 
-// checked 是 reactive Set：同帳號再看到新貼文時篇數自動更新。
-const props = defineProps<{ checked: Set<string>; dark: boolean }>();
+// checked 是 reactive Map（網址 → 貼文或留言）：同帳號再看到新貼文、留言時數量自動更新。
+const props = defineProps<{
+  checked: ReadonlyMap<string, PostKind>;
+  dark: boolean;
+}>();
 
-const summary = computed(
-  () => `已看過 ${props.checked.size} 篇貼文，未發現可疑特徵`
-);
+const summary = computed(() => {
+  const kinds = [...props.checked.values()];
+  const replies = kinds.filter((kind) => kind === 'reply').length;
+  const posts = kinds.length - replies;
+  const parts: string[] = [];
+  if (posts) parts.push(`${posts} 篇貼文`);
+  if (replies) parts.push(`${replies} 則留言`);
+  return `已看過 ${parts.join('、')}，未發現可疑特徵`;
+});
 </script>
 
 <template>
@@ -55,14 +65,15 @@ const summary = computed(
 
 ## 公開介面
 
-- Props：checked（這個帳號已檢查的貼文網址，reactive Set）、dark。
+- Props：checked（這個帳號已檢查的網址 → 貼文或留言，reactive Map）、dark。
 - v-model：無。
 - Emits：無。
 - 主要依賴：RiskBadge、`constants/riskLevel.ts` 的 CHECKED_STYLE。
 
 ## 主要行為
 
-- 標示顯示灰色勾勾；點開說明「已看過 N 篇貼文，未發現可疑特徵」，篇數只算畫面上看過的貼文（規格 2.2 不爬取帳號全部貼文），隨看到的貼文增加。
+- 標示顯示灰色勾勾；點開說明「已看過 N 篇貼文、M 則留言，未發現可疑特徵」，數量是 0 的那項不寫（例如只看過留言就寫「已看過 1 則留言」）。
+- 只算這次在畫面上看過的貼文與留言（規格 2.2 不爬取帳號全部貼文），隨看到的增加；留言只有單篇貼文頁主貼文下方、其他帳號的回覆，其他頁面都算貼文；作者自己的回覆是串文，不另外計數（使用者決定）。
 - 說明固定寫明不代表帳號安全，並附 165 查證說明。
 - 攔截 click 與 pointerdown，避免點標示或說明時觸發 Threads 跳頁。
 

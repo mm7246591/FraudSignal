@@ -1,4 +1,5 @@
 import { ENGINE_VERSION, LEVEL_RANK } from '@/engine/riskRules';
+import type { PostKind } from '@/types/post';
 import type { RiskResult } from '@/types/risk';
 import type { Settings } from '@/types/settings';
 
@@ -10,6 +11,8 @@ type StoredPost = {
   postId: string;
   authorHandle: string;
   postUrl: string;
+  /** 貼文或留言，原因面板的文案用；舊資料沒有，當貼文。 */
+  kind?: PostKind;
   /** 圖片辨識出的文字；留言讓主貼文重新判定時要一起算。 */
   imageText?: string;
   result: RiskResult;
