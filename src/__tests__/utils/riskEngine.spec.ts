@@ -170,3 +170,100 @@ describe('evaluatePost 防詐語境', () => {
     expect(levelOf('不騙你，保證獲利，快加入投資群組')).toBe('high');
   });
 });
+
+// docs/risk-rules.md 第 6 節：留言只當佐證。
+describe('evaluatePost 留言（社群反應）', () => {
+  const comments = (...texts: string[]) =>
+    texts.map((visibleText, i) => ({ authorHandle: `user${i}`, visibleText }));
+  const levelWith = (text: string, list: ReturnType<typeof comments>) =>
+    evaluatePost(post(text), undefined, list).level;
+  const TICKET = '演唱會門票轉售，只能先匯款，私訊';
+
+  it('只有弱訊號的貼文，2 個帳號說是騙子 → 注意', () => {
+    expect(levelWith(TICKET, comments('騙子別買', '我被騙了 已報警'))).toBe(
+      'caution'
+    );
+  });
+
+  it('只有 1 個帳號這樣說，仍資料不足', () => {
+    expect(levelWith(TICKET, comments('騙子別買', '還有嗎'))).toBe('unknown');
+  });
+
+  it('同一帳號留兩次只算 1 個帳號', () => {
+    const list = [
+      { authorHandle: 'a', visibleText: '騙子' },
+      { authorHandle: 'a', visibleText: '已檢舉' },
+    ];
+    expect(levelWith(TICKET, list)).toBe('unknown');
+  });
+
+  it('貼文本身沒有訊號時不看留言', () => {
+    expect(
+      levelWith('大家買東西的經驗分享', comments('詐騙', '騙子', '已檢舉'))
+    ).toBe('unknown');
+  });
+
+  it('貼文在提醒防詐時不看留言', () => {
+    expect(
+      levelWith(
+        '提醒大家！有人說保證獲利叫你加 LINE 投資群組，小心詐騙',
+        comments('我也被騙了', '騙子好多')
+      )
+    ).toBe('notice');
+  });
+
+  it('作者自己的留言不算', () => {
+    const list = [
+      { authorHandle: 'someone', visibleText: '有人說我是騙子' },
+      { authorHandle: 'someone', visibleText: '已檢舉亂說的人' },
+    ];
+    expect(levelWith(TICKET, list)).toBe('unknown');
+  });
+
+  it('泛用提醒、否定句、身高 165 不算指認', () => {
+    expect(
+      levelWith(
+        TICKET,
+        comments('小心詐騙喔', '不是詐騙啦我買過', '165 公分穿 M', '注意別被騙')
+      )
+    ).toBe('unknown');
+  });
+
+  it('多個帳號留「感謝老師」等暗樁話術 → 由提醒升為注意', () => {
+    const text = '這檔穩賺，想了解的留言';
+    expect(levelWith(text, [])).toBe('notice');
+    expect(
+      levelWith(text, comments('感謝老師帶我賺了3萬', '已上車', '真的嗎'))
+    ).toBe('caution');
+  });
+
+  it('3 個以上帳號留言幾乎相同 → 網軍弱訊號', () => {
+    const text = '這檔穩賺，想了解的留言';
+    const result = evaluatePost(
+      post(text),
+      undefined,
+      comments(
+        '這個方法真的很有用，推薦給大家！',
+        '這個方法真的很有用，推薦給大家',
+        '這個方法真的很有用推薦給大家😊'
+      )
+    );
+    expect(result.level).toBe('caution');
+    expect(result.signals.map((signal) => signal.ruleId)).toContain(
+      'similar-comments'
+    );
+  });
+
+  it('只有 2 個帳號相同、或「+1」這類短留言不算網軍', () => {
+    const text = '這檔穩賺，想了解的留言';
+    expect(
+      levelWith(
+        text,
+        comments('這個方法真的很有用，推薦給大家！', '這個方法真的很有用')
+      )
+    ).toBe('notice');
+    expect(levelWith(text, comments('+1', '+1', '+1', '已私', '已私'))).toBe(
+      'notice'
+    );
+  });
+});

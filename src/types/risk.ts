@@ -7,8 +7,9 @@ export type RiskLevel = 'high' | 'caution' | 'notice' | 'unknown';
 /** 會在畫面上顯示提示的等級。 */
 export type VisibleRiskLevel = Exclude<RiskLevel, 'unknown'>;
 
-/** 訊號類別：同一類別再多訊號也不會單獨觸發「注意」以上。 */
-export type RiskCategory = 'lure' | 'offPlatform' | 'payment' | 'link';
+/** 訊號類別：同一類別再多訊號也不會單獨觸發「注意」以上。community 是其他帳號的留言反應。 */
+export type RiskCategory =
+  'lure' | 'offPlatform' | 'payment' | 'link' | 'community';
 
 /** critical：可驗證的證據（165 清單、仿冒網域），單獨即為高風險。 */
 export type RiskStrength = 'critical' | 'strong' | 'weak';
@@ -20,7 +21,7 @@ export type RiskSignal = {
   label: string;
   /** 觸發的原文片段或網址。 */
   evidence: string;
-  source: 'text' | 'link' | 'blocklist';
+  source: 'text' | 'link' | 'blocklist' | 'comment';
 };
 
 /**

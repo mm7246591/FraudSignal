@@ -108,10 +108,35 @@ export const findPostContainers = () => [
   ...document.querySelectorAll(POST_SELECTOR),
 ];
 
-export const getPostAuthor = (container: Element) =>
+const getPostLink = (container: Element) =>
   POST_PATH.exec(
     container.querySelector('time')?.closest('a')?.getAttribute('href') ?? ''
-  )?.[1];
+  );
+
+export const getPostAuthor = (container: Element) =>
+  getPostLink(container)?.[1];
+
+/**
+ * 單篇貼文頁上的留言：跟主貼文在同一個對話區塊、排在主貼文之後（之前的是上層串文），回傳主貼文 postId。
+ * 不在單篇貼文頁、找不到主貼文或不是留言時回傳 undefined。
+ */
+export const getRepliedPostId = (container: Element) => {
+  const postId = POST_PATH.exec(window.location.pathname)?.[2];
+  if (!postId) return undefined;
+  // querySelectorAll 依文件順序排列。
+  const containers = findPostContainers();
+  const main = containers.find((el) => getPostLink(el)?.[2] === postId);
+  // 對話區塊是主貼文往上第一個有多個子元素的祖先（2026-10-15 實測，含沒有留言的貼文）；
+  // 下方「相關串文」推薦在區塊外，不算留言。
+  let thread = main?.parentElement;
+  while (thread && thread.childElementCount < 2) thread = thread.parentElement;
+  // ponytail: 留言的留言也算主貼文的留言；要區分再看縮排層級。
+  return main &&
+    thread?.contains(container) &&
+    containers.indexOf(container) > containers.indexOf(main)
+    ? postId
+    : undefined;
+};
 
 /**
  * 作者頭像外框（36×36 的 div，包住頭像連結），提示掛在它右下角。

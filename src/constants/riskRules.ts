@@ -1,7 +1,7 @@
 import type { RiskCategory, RiskStrength } from '@/types/risk';
 
 // 規則或清單改變時遞增，讓快取失效（規格 9）。
-const ENGINE_VERSION = '2';
+const ENGINE_VERSION = '3';
 
 // 「不保證獲利」「哪有穩賺不賠」這類否定句不算。
 const NOT = '(?<!不|沒|無|非|別|哪有|沒有|不會|不可能|絕不|並非|不是)';
@@ -266,9 +266,19 @@ const OFFICIAL_COMMERCE_HOSTS = new Set([
 const WARNING_CONTEXT =
   /詐騙|小心|提醒大家|防詐|被騙|騙子|詐團|騙局|(?<!不)騙(你|人)|假裝|別亂點|不要亂點|別點|不要點|不要相信|受害|報案|(撥打|打|報)165|165(專線|反詐)|反詐/;
 
+// 留言規則（社群反應），見 docs/risk-rules.md 第 6 節。比對正規化後的單則留言。
+// 只算直接指認：「小心詐騙」這類泛用提醒、「不是詐騙」否定句不算；「165」要搭配撥打，避免「165 公分」。
+const COMMUNITY_WARNING =
+  /(?<!不|沒|沒有|不是|不會是|不像|並非|非|防|反|小心|注意|提防|預防)(詐騙|詐團|騙子|騙錢|被騙)|檢舉|報警|(打|撥|報)165|165專線/;
+// 暗樁話術；「賺到」「已私」「已加賴」在正常買賣留言很常見，不列入。
+const SHILL_PRAISE =
+  /(感謝|謝謝|跟著?)老師|老師(帶|推|報|好準|太準|厲害)|已上車|上車了|出金(成功|了|到帳)|(賺|獲利)了?\d|翻倍了/;
+
 export {
   ENGINE_VERSION,
   TEXT_RULES,
+  COMMUNITY_WARNING,
+  SHILL_PRAISE,
   LINK_RULES,
   OFFICIAL_COMMERCE_HOSTS,
   WARNING_CONTEXT,

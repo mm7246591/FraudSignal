@@ -14,6 +14,7 @@ export const getAccountRisk = (handle: string) => accounts.get(handle);
 
 /**
  * 記錄一篇貼文的判定到作者帳號；回傳是否為這個帳號第一次被標示。
+ * 同一篇再次判定（看到更多留言）時覆蓋該篇結果；留言只會增加訊號，等級不會下降。
  * 帳號物件是 reactive，等級升高時已掛上的提示會自動更新。
  */
 export const recordPostRisk = (
@@ -31,8 +32,9 @@ export const recordPostRisk = (
     );
     return true;
   }
-  if (existing.posts.some((post) => post.postUrl === postUrl)) return false;
-  existing.posts.push({ postUrl, level, signals });
+  const seen = existing.posts.find((post) => post.postUrl === postUrl);
+  if (seen) Object.assign(seen, { level, signals });
+  else existing.posts.push({ postUrl, level, signals });
   if (RANK[level] > RANK[existing.level]) existing.level = level;
   return false;
 };

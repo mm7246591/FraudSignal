@@ -1,7 +1,9 @@
 import {
+  COMMUNITY_WARNING,
   ENGINE_VERSION,
   LINK_RULES,
   OFFICIAL_COMMERCE_HOSTS,
+  SHILL_PRAISE,
   TEXT_RULES,
   WARNING_CONTEXT,
   hostOf,
@@ -10,6 +12,7 @@ import type { PostSnapshot } from '@/types/post';
 import type { RiskLevel, RiskResult, RiskSignal } from '@/types/risk';
 
 type Blocklist = { hosts: Set<string>; fetchedAt: string };
+type Comment = Pick<PostSnapshot, 'authorHandle' | 'visibleText'>;
 
 // 詐團會用空白、零寬字元或符號拆字，例如「加 L I N E」「穩.賺」。
 const REMOVABLE = /[\s\u200b-\u200d\u2060\ufeff.·•*_\-|~/\\]/;
@@ -83,6 +86,116 @@ const matchLinks = (urls: URL[], blocklist?: Blocklist): RiskSignal[] =>
     return signals;
   });
 
+// 網軍留言：只看文字與數字（網軍常換標點、表情符號），至少 8 字、雙字組相似度 ≥ 0.8；
+// 「+1」「已私」這類短留言正常貼文也大量重複，不算。
+const MIN_SIMILAR_LENGTH = 8;
+const SIMILARITY = 0.8;
+
+const bigrams = (text: string) => {
+  const chars = [...text];
+  return new Set(chars.slice(1).map((char, i) => chars[i] + char));
+};
+
+const similarity = (a: Set<string>, b: Set<string>) => {
+  const shared = [...a].filter((gram) => b.has(gram)).length;
+  return shared / (a.size + b.size - shared);
+};
+
+const matchComments = (comments: Comment[]): RiskSignal[] => {
+  const parsed = comments.map(({ authorHandle, visibleText }) => ({
+    authorHandle,
+    visibleText,
+    ...normalize(visibleText),
+  }));
+  const hits = (pattern: RegExp) =>
+    parsed.flatMap(({ authorHandle, visibleText, normalized, positions }) => {
+      const match = pattern.exec(normalized);
+      return match
+        ? [
+            {
+              authorHandle,
+              evidence: toOriginal(visibleText, positions, match),
+            },
+          ]
+        : [];
+    });
+  const accountCount = (list: { authorHandle: string }[]) =>
+    new Set(list.map(({ authorHandle }) => authorHandle)).size;
+  const signal = (
+    ruleId: string,
+    strength: RiskSignal['strength'],
+    label: string,
+    evidence: string
+  ): RiskSignal => ({
+    ruleId,
+    category: 'community',
+    strength,
+    label,
+    evidence,
+    source: 'comment',
+  });
+  const signals: RiskSignal[] = [];
+
+  // 1 個帳號可能是同業或酸民，2 個以上帳號都這樣說才算強訊號。
+  const warnings = hits(COMMUNITY_WARNING);
+  const warners = accountCount(warnings);
+  if (warners) {
+    signals.push(
+      signal(
+        'community-warning',
+        warners >= 2 ? 'strong' : 'weak',
+        `${warners} 個其他帳號留言指出可能是詐騙`,
+        warnings[0].evidence
+      )
+    );
+  }
+
+  const shills = hits(SHILL_PRAISE);
+  const shillers = accountCount(shills);
+  if (shillers >= 2) {
+    signals.push(
+      signal(
+        'shill-praise',
+        'weak',
+        `${shillers} 個帳號留言感謝老師或分享獲利（常見暗樁話術）`,
+        shills[0].evidence
+      )
+    );
+  }
+
+  // ponytail: 兩兩比對 O(n²)，畫面上的留言通常不到百則；留言上千再改用 MinHash。
+  const long = parsed
+    .map((comment) => ({
+      ...comment,
+      words: comment.normalized.replace(/[^\p{L}\p{N}]/gu, ''),
+    }))
+    .filter(({ words }) => [...words].length >= MIN_SIMILAR_LENGTH)
+    .map((comment) => ({ ...comment, grams: bigrams(comment.words) }));
+  const largest = long
+    .map((comment) =>
+      long.filter(
+        (other) => similarity(comment.grams, other.grams) >= SIMILARITY
+      )
+    )
+    .reduce<typeof long>(
+      (best, group) =>
+        accountCount(group) > accountCount(best) ? group : best,
+      []
+    );
+  const similars = accountCount(largest);
+  if (similars >= 3) {
+    signals.push(
+      signal(
+        'similar-comments',
+        'weak',
+        `${similars} 個帳號留言內容幾乎相同（疑似網軍）`,
+        largest[0].visibleText.slice(0, 30)
+      )
+    );
+  }
+  return signals;
+};
+
 const decideLevel = (signals: RiskSignal[], warningContext: boolean) => {
   if (signals.some((signal) => signal.strength === 'critical')) return 'high';
   const categories = new Set(signals.map((signal) => signal.category));
@@ -101,27 +214,42 @@ const decideLevel = (signals: RiskSignal[], warningContext: boolean) => {
   return warningContext && textOnly && level !== 'unknown' ? 'notice' : level;
 };
 
+/** comments：單篇貼文頁上看得到的留言，只當佐證（docs/risk-rules.md 第 6 節）。 */
 export const evaluatePost = (
   post: PostSnapshot,
-  blocklist?: Blocklist
+  blocklist?: Blocklist,
+  comments: Comment[] = []
 ): RiskResult => {
   const urls = post.outboundUrls.map((url) => new URL(url));
   const hasOfficialCommerce = urls.some((url) =>
     OFFICIAL_COMMERCE_HOSTS.has(hostOf(url))
   );
-  const signals = [
+  const own = [
     ...matchText(post.visibleText),
     ...matchLinks(urls, blocklist),
   ].filter(
     (signal) => !(hasOfficialCommerce && signal.ruleId === 'prepay-only')
   );
+  const warningContext = WARNING_CONTEXT.test(
+    normalize(post.visibleText).normalized
+  );
+  // 貼文本身沒有訊號時不看留言，避免「大家有被詐騙過嗎」這類貼文被標示；
+  // 貼文在提醒防詐時，留言自然也會講到詐騙，同樣不計。作者自己的留言不算。
+  const signals =
+    own.length && !warningContext
+      ? [
+          ...own,
+          ...matchComments(
+            comments.filter(
+              ({ authorHandle }) => authorHandle !== post.authorHandle
+            )
+          ),
+        ]
+      : own;
   return {
     subjectType: 'post',
     subjectKey: `${post.platform}:${post.postId}`,
-    level: decideLevel(
-      signals,
-      WARNING_CONTEXT.test(normalize(post.visibleText).normalized)
-    ),
+    level: decideLevel(signals, warningContext),
     signals,
     analyzedAt: Date.now(),
     engineVersion: ENGINE_VERSION,
