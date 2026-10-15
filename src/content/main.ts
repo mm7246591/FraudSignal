@@ -16,12 +16,9 @@ import {
 } from './accountRisks';
 import { recognizeImages } from './imageText';
 import { clearBadges, setDisplay, syncAccountBadge } from './mountRiskAlert';
-import {
-  findPostContainers,
-  getPostAuthor,
-  getRepliedPostId,
-  observeThreadsFeed,
-} from './threadsAdapter';
+import { adapter } from './platform';
+
+const { findPostContainers, getPostAuthor, getRepliedPostId } = adapter;
 
 // postId → 判定；有風險的另存 chrome.storage.local，重新整理後還原。
 const results = new Map<string, Promise<RiskResult>>();
@@ -154,7 +151,7 @@ const applySettings = (settings: Settings) => {
   setDisplay(settings);
   ({ enabled } = settings);
   if (enabled) {
-    stopFeed ??= observeThreadsFeed(onPost);
+    stopFeed ??= adapter.observeFeed(onPost);
     syncAllBadges();
     return;
   }
@@ -169,9 +166,18 @@ const start = async () => {
     console.debug('[ScamLens] 快取讀取失敗', error);
     return { posts: [], ignoredAccounts: [], settings: DEFAULT_SETTINGS };
   });
-  restoreIgnored(stored.ignoredAccounts);
+  // 快取與忽略清單是各平台共用的，只取這個平台的。
+  const { platform } = adapter;
+  restoreIgnored(
+    stored.ignoredAccounts
+      .filter((account) => account.platform === platform)
+      .map(({ handle }) => handle)
+  );
+  const storedPosts = stored.posts.filter(({ result }) =>
+    result.subjectKey.startsWith(`${platform}:`)
+  );
   // 快取的貼文不再重新分析（US-04），帳號標示先建好，看到該帳號的貼文就會掛上。
-  stored.posts.forEach(
+  storedPosts.forEach(
     ({ postId, authorHandle, postUrl, kind = 'post', imageText, result }) => {
       results.set(postId, Promise.resolve(result));
       kinds.set(postId, kind);
@@ -179,7 +185,7 @@ const start = async () => {
       recordPostRisk(authorHandle, postUrl, result, kind);
     }
   );
-  const flagged = stored.posts.filter(
+  const flagged = storedPosts.filter(
     ({ result }) => result.level !== 'unknown'
   );
   if (flagged.length) {

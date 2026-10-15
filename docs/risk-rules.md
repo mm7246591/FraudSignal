@@ -1,6 +1,6 @@
 # 風險規則研究與設計（步驟 3）
 
-整理日期：2026-10-15。範圍：台灣常見的**假投資**與**假購物／假送物**，平台為 Threads。
+整理日期：2026-10-15。範圍：台灣常見的**假投資**與**假購物／假送物**，平台為 Threads（研究與實測樣本都來自 Threads），同一套規則也用在 X。
 
 ## 1. 研究摘要
 
@@ -198,6 +198,8 @@
 - 作者自己的留言不算。留言的留言目前也當主貼文的留言。
 - 留言本身也照一般貼文判定，有風險時標示留言者，原因面板寫「留言」「查看留言」。
 
+X 的單篇貼文頁（`/帳號/status/ID`）：主貼文與留言在同一個清單（登入後是對話時間軸、未登入是 `ul`），排在主貼文之後的是留言、之前的是上層串文；引用的貼文不算留言（2026-10-15 實測，未登入只看得到前 3 則留言）。留言後面若有「探索更多」推薦，標題之後的不算留言；實測的貼文沒出現這一段，標題結構是推測。
+
 ### 6.3 留言訊號（類別：社群反應）
 
 | 規則 | 條件 | 強度 |
@@ -231,7 +233,7 @@
   - 核心：只帶 SIMD 版的 `tesseract-core-simd-lstm.wasm.js`（約 3.9MB），Chrome 91 起都支援。
   - 語言檔：`public/tessdata/chi_tra.traineddata.gz`（約 1.6MB），取自 `@tesseract.js-data/chi_tra` 1.0.0 的 `4.0.0_best_int`。Tesseract 依「langPath／語言.traineddata.gz」組網址，檔名不能加 hash，所以放 `public/`。
 - content script 不能開擴充功能的 worker，所以辨識在離屏頁（offscreen document）執行：content script → 背景 service worker（建立離屏頁、轉送）→ 離屏頁。
-- 權限：只多了 `offscreen`，安裝時不會跳警告。Threads 的圖片 CDN（`*.fbcdn.net`）回傳 `Access-Control-Allow-Origin: *`，不需要圖片網域權限（2026-10-15 實測）。
+- 權限：只多了 `offscreen`，安裝時不會跳警告。Threads 的圖片 CDN（`*.fbcdn.net`）回傳 `Access-Control-Allow-Origin: *`，X 的 `pbs.twimg.com` 回傳請求的來源，都不需要圖片網域權限（2026-10-15 實測）。
 - manifest 的 CSP 要加 `'wasm-unsafe-eval'`，Chrome 預設的擴充功能 CSP 會停用 WebAssembly；這是 Chrome 允許的最低政策。
 - Tesseract 預設用 `blob:` 網址開 worker，擴充功能的 CSP 不允許，要設 `workerBlobURL: false`。
 - Tesseract.js 7 的語言檔若用 `{ code, data }` 物件傳入，初始化會誤用 `data` 欄位，所以不用這個寫法。
@@ -242,6 +244,7 @@
 
 - 只辨識 `<picture>` 內的貼文照片；頭像、影片縮圖不在 `<picture>` 內（2026-10-15 實測）。Threads 的貼文照片沒有替代文字（alt 是空的），不能直接拿來用。
 - 從 srcset 挑寬度不超過 1080 的最大張：小字看得清楚，再大只會變慢。實測 1080 寬約 1.7～2 秒、720 寬約 1.2 秒，第一次載入引擎約 0.6 秒。
+- X 只辨識 `pbs.twimg.com/media/` 的貼文照片，改用 `format=jpg&name=medium`（1200 寬）：預設的 webp 不確定 Tesseract 能讀，`small`（680 寬）看不清小字。頭像、連結卡片縮圖、影片縮圖不辨識。
 - 每篇最多 3 張：詐騙圖卡的重點通常在前面，輪播十張全辨識太吃 CPU。
 - 一次只辨識一張；後進先出，快速捲動時先辨識剛進入畫面的貼文（規格書第 9 節）。已離開畫面的貼文仍會辨識，之後若要更省 CPU 再改成可取消。
 - 30 秒沒回應就放棄這張，不卡住後面的佇列。全部失敗時不存結果，下次載入頁面再試。

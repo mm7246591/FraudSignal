@@ -1,4 +1,6 @@
 import type { PostSnapshot } from '@/types/post';
+import { observeFeed } from './observeFeed';
+import type { PlatformAdapter } from './platform';
 
 const POST_SELECTOR = '[data-pressable-container="true"]';
 const POST_PATH = /^\/@([^/]+)\/post\/([^/?#]+)/;
@@ -171,58 +173,17 @@ const getAvatarFrame = (container: Element, authorHandle: string) =>
     link.querySelector('img')
   )?.parentElement ?? null;
 
-/**
- * 貼文每次進入視窗都回呼（Threads 會重新渲染節點，提示要能補回）；去重由呼叫端以 postId 處理。
- * DOM 變動批次掃描。回傳停止函式。
- */
-const observeThreadsFeed = (
-  onPost: (post: PostSnapshot, container: Element) => void
-) => {
-  const intersection = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (!entry.target.isConnected) {
-        intersection.unobserve(entry.target);
-        return;
-      }
-      if (!entry.isIntersecting || !isSupportedPage()) return;
-      const post = extractPost(entry.target);
-      // ponytail: 停留在視窗內時被換內容的節點會漏掉，要處理再改監聽節點內容變動。
-      if (post) onPost(post, entry.target);
-    });
-  });
-
-  const scan = () => {
-    if (!isSupportedPage()) return;
-    // 重複 observe 同一節點不會有作用，不另外記錄。
-    document
-      .querySelectorAll(POST_SELECTOR)
-      .forEach((el) => intersection.observe(el));
-  };
-
-  let scheduled = false;
-  const mutation = new MutationObserver(() => {
-    if (scheduled) return;
-    scheduled = true;
-    window.setTimeout(() => {
-      scheduled = false;
-      scan();
-    }, 200);
-  });
-
-  scan();
-  mutation.observe(document.body, { childList: true, subtree: true });
-  return () => {
-    mutation.disconnect();
-    intersection.disconnect();
-  };
-};
-
-export {
-  toOutboundUrl,
-  pickSrcsetUrl,
+const threadsAdapter: PlatformAdapter = {
+  platform: 'threads',
+  getAvatarFrame,
   findPostContainers,
   getPostAuthor,
   getRepliedPostId,
-  getAvatarFrame,
-  observeThreadsFeed,
+  observeFeed: (onPost) =>
+    observeFeed(
+      { selector: POST_SELECTOR, isSupportedPage, extractPost },
+      onPost
+    ),
 };
+
+export { toOutboundUrl, pickSrcsetUrl, threadsAdapter };

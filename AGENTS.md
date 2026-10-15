@@ -5,15 +5,17 @@
 ## 擴充功能入口
 
 - 使用 `@crxjs/vite-plugin`；manifest 寫在 `vite.config.ts` 的 `crx({ manifest })`，不另放 `manifest.json`。
-- popup 是設定頁（規格 FR-06）：`src/popup/index.html` → `src/popup/main.ts` → `src/views/settings/SettingsView.vue`。偵測開關、「顯示哪些標示」與「顯示已檢查的帳號」存在 chrome.storage.local 的 `settings`（型別 `src/types/settings.ts`），Threads 分頁監聽變更即時生效；取消忽略與清除快取要重新整理分頁才生效。規格 7 的 aiEnabled、urlCheckEnabled、dailyLimit 等 M3 功能做了再加。
+- popup 是設定頁（規格 FR-06）：`src/popup/index.html` → `src/popup/main.ts` → `src/views/settings/SettingsView.vue`。偵測開關、「顯示哪些標示」與「顯示已檢查的帳號」存在 chrome.storage.local 的 `settings`（型別 `src/types/settings.ts`），Threads、X 分頁監聽變更即時生效；取消忽略與清除快取要重新整理分頁才生效。規格 7 的 aiEnabled、urlCheckEnabled、dailyLimit 等 M3 功能做了再加。
 - 擴充功能圖示：原稿 `public/icons/icon.svg`（青→藍→靛漸層盾牌＋放大鏡＋驚嘆號，使用者選定），輸出成 `public/icons/icon-{16,32,48,128}.png`；manifest 的圖示只能用 PNG。改原稿後要重新輸出，128px 四周留 16px 透明邊（Chrome 建議）。
-- content script：`src/content/main.ts`，只注入 `https://www.threads.com/*`。第一版先支援 Threads（使用者決定，規格書原為 Instagram 優先），IG 之後再加。偵測範圍為首頁動態與他人帳號頁（個人頁、單篇貼文含留言），比規格書第 14 節建議的「只限首頁」更廣，也是使用者決定。
-- content script 的非 Vue 模組（平台 Adapter 等）放 `src/content/`，例如 `src/content/threadsAdapter.ts`。
+- content script：`src/content/main.ts`，只注入 `https://www.threads.com/*` 與 `https://x.com/*`。支援 Threads 與 X（使用者決定，規格書原為 Instagram 優先），IG 之後再加。偵測範圍為首頁動態與他人帳號頁（個人頁、單篇貼文含留言），比規格書第 14 節建議的「只限首頁」更廣，也是使用者決定。
+- 平台 Adapter（讀頁面的部分）：`src/content/threadsAdapter.ts`、`src/content/xAdapter.ts`，介面 `PlatformAdapter` 與依網域選用的 `adapter` 在 `src/content/platform.ts`；觀察捲動的共用邏輯在 `src/content/observeFeed.ts`。判定、標示、快取、設定各平台共用，不要在 Adapter 以外寫平台判斷。新增平台時加 Adapter、`Platform` 型別（`src/types/post.ts`）與 manifest 的 matches。
+- X 不用官方 API（使用者決定：只有付費、拿不到「為你推薦」動態、金鑰要後端），跟 Threads 一樣讀畫面上的貼文。X 登入後與未登入是兩種網頁結構（登入後的舊版有 `data-testid`，未登入的新版沒有），兩種都要支援，選取方式見 `src/content/xAdapter.ts` 的註解（2026-10-15 實測）。
+- content script 的其他非 Vue 模組也放 `src/content/`。
 - 單篇貼文頁上其他帳號的留言當主貼文的佐證（社群反應），規則見 `docs/risk-rules.md` 第 6 節；不爬取按讚者或留言者的個人頁。
 - 圖片文字辨識（使用者決定，規格書沒有）：貼文照片用 Tesseract.js 在本機辨識，文字走同一套規則，細節見 `docs/risk-rules.md` 第 7 節。content script 不能開擴充功能的 worker，流程是 `src/content/imageText.ts` → 背景 `src/background/main.ts`（建立離屏頁、轉送）→ 離屏頁 `src/offscreen/index.html` → `src/offscreen/main.ts`。離屏頁不在 manifest 裡，在 `vite.config.ts` 的 `build.rollupOptions.input` 列為入口。需要 `offscreen` 權限與 CSP 的 `'wasm-unsafe-eval'`；語言檔 `public/tessdata/chi_tra.traineddata.gz` 檔名不能改。
 - 帳號標示（使用者決定，規格書第 5 節原本要求有帳號層級證據才標示帳號）：貼文判定有風險時標示作者帳號，等級取該帳號已看到貼文的最高等級，記在 `src/content/accountRisks.ts`。
-- 判定快取與忽略清單存在 chrome.storage.local（manifest 的 `storage` 權限），讀寫集中在 `src/utils/riskStorage.ts`（content script 與設定頁共用）：只存有風險、或辨識過圖片文字的貼文判定（後者連同 `imageText`，避免重新辨識），鍵為 `result:<subjectKey>`；分析版本（`ENGINE_VERSION`）不同、超過 `expiresAt`（`RESULT_TTL_MS`，7 天）或超過 1000 筆時，在頁面載入時清除。使用者忽略的帳號記在 `ignoredAccounts`（帳號名稱）；以帳號為單位忽略是使用者決定，規格 US-03／第 7 節原為單篇貼文的 `ignoredPostKeys`。
-- 標示位置是作者頭像右下角，貼文本身不加標示：`src/content/mountRiskAlert.ts` 在頭像外框建立 Shadow DOM，掛載 `src/views/risk-alert/RiskAlertView.vue`；子元件在 `src/components/risk-alert/`。
+- 判定快取與忽略清單存在 chrome.storage.local（manifest 的 `storage` 權限），各平台共用、content script 只取自己平台的，讀寫集中在 `src/utils/riskStorage.ts`（content script 與設定頁共用）：只存有風險、或辨識過圖片文字的貼文判定（後者連同 `imageText`，避免重新辨識），鍵為 `result:<subjectKey>`；分析版本（`ENGINE_VERSION`）不同、超過 `expiresAt`（`RESULT_TTL_MS`，7 天）或超過 1000 筆時，在頁面載入時清除。使用者忽略的帳號記在 `ignoredAccounts`（「平台:帳號」；舊資料只有帳號名稱，當成 Threads）；以帳號為單位忽略是使用者決定，規格 US-03／第 7 節原為單篇貼文的 `ignoredPostKeys`。
+- 標示位置是作者頭像右下角，貼文本身不加標示：`src/content/mountRiskAlert.ts` 在頭像外框（Adapter 的 `getAvatarFrame`）建立 Shadow DOM，掛載 `src/views/risk-alert/RiskAlertView.vue`；子元件在 `src/components/risk-alert/`。
 - 文案只陳述「此帳號發過可疑貼文」（可疑的是留言時寫「留言」），不寫「此帳號是詐騙」（規格書第 5 節禁止文案）。
 - 原因面板（`src/components/risk-alert/RiskReasonPanel.vue`）的文字與圖片訊號只列觸發的原文、不列原因說明（使用者決定，說明太長；規格 US-02 原要求顯示規則類別）；連結、165 清單與留言訊號保留說明，因為證據是網址或留言，沒有說明看不出為什麼可疑。
 - 不顯示「安全」（規格 US-05、第 5、7 節）。設定頁開啟「顯示已檢查的帳號」時，沒發現可疑的帳號掛灰色「已看過 N 篇貼文、M 則留言」（`src/views/risk-alert/CheckedAccountView.vue`），文案註明不代表安全；這是使用者同意的做法，不要改成綠色或「安全」。
@@ -25,7 +27,7 @@
 
 ## 目錄配置
 
-- 擴充功能的每個執行環境一個資料夾：`src/content/`（注入 Threads 的 content script）、`src/background/`（Service Worker）、`src/offscreen/`（離屏頁）、`src/popup/`（設定頁入口）。入口一律叫 `main.ts`，需要 HTML 的入口把 `index.html` 放在同一個資料夾；只屬於該環境的非 Vue 模組也放在這裡。
+- 擴充功能的每個執行環境一個資料夾：`src/content/`（注入 Threads、X 的 content script）、`src/background/`（Service Worker）、`src/offscreen/`（離屏頁）、`src/popup/`（設定頁入口）。入口一律叫 `main.ts`，需要 HTML 的入口把 `index.html` 放在同一個資料夾；只屬於該環境的非 Vue 模組也放在這裡。
 - 判定核心放 `src/engine/`：純邏輯，不使用 chrome API 與 DOM，方便單元測試；content script 與設定頁都從這裡取規則與常數（例如 `ENGINE_VERSION`、`LEVEL_RANK`）。
 - 跨執行環境共用、會用到 chrome API 的模組放 `src/utils/`，例如 `src/utils/riskStorage.ts`。
 - 父元件／頁面放在 `src/views/`；View 檔名使用 PascalCase，原則上以 `View` 結尾。
@@ -73,7 +75,7 @@ src/
 
 ## 樣式
 
-- 使用 Tailwind CSS v3，樣式直接寫在 template 的 `class`；content script 注入的 UI 在 Shadow DOM 內載入 Tailwind，不影響 Threads 頁面。
+- 使用 Tailwind CSS v3，樣式直接寫在 template 的 `class`；content script 注入的 UI 在 Shadow DOM 內載入 Tailwind，不影響原站頁面。
 - 固定間距、尺寸、圓角、字級、行高與線寬使用明確 px，例如 `mt-[4px]`、`w-[288px]`、`rounded-[12px]`、`text-[12px]`、`leading-[16px]`、`border-[1px]`；不使用 `mt-1`、`w-72`、`rounded-xl`、`text-xs`、`border` 這類預設級距。
 - `0`、`auto`、`%`／視窗單位，以及顏色、字重、透明度、陰影、縮放維持 Tailwind 預設 class，例如 `m-0`、`inset-auto`、`text-red-600`、`font-semibold`、`shadow-lg`。
 - `text-xs` 這類字級 class 同時設定行高，改寫成 px 時要一併寫 `leading-[...]`，避免行高改變。

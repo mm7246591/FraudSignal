@@ -11,7 +11,7 @@ type LevelStyle = {
 
 // 圖示：Google Material Symbols Rounded 填滿版（Apache 2.0），
 // 盾牌系列對應資安產品常見的「危險 ✕／注意 !／不確定 ?」。
-// 顏色在 Threads 淺色 #FFFFFF 與深色 #101010 背景的對比都 ≥ 3:1（WCAG 非文字對比）。
+// 顏色在 Threads 淺色 #FFFFFF、深色 #101010 與 X 的 #000000、#15202B 背景的對比都 ≥ 3:1（WCAG 非文字對比）。
 const LEVEL_STYLES: Record<VisibleRiskLevel, LevelStyle> = {
   high: {
     label: '高風險',

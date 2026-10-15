@@ -47,6 +47,6 @@ defineProps<{
 ## 狀態與限制
 
 - 尺寸 18px 必須與 `src/content/mountRiskAlert.ts` 的 `BADGE_SIZE` 一致，否則會蓋到頭像。
-- 圖示顏色在 Threads 淺色與深色背景的對比都 ≥ 3:1，不需要底色。
-- 樣式使用 Tailwind utility class，尺寸寫明確 px，在 Shadow DOM 內載入，不影響 Threads 頁面。
+- 圖示顏色在 Threads、X 淺色與深色背景的對比都 ≥ 3:1，不需要底色。
+- 樣式使用 Tailwind utility class，尺寸寫明確 px，在 Shadow DOM 內載入，不影響原站頁面。
 </spec>

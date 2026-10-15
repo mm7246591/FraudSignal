@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   getAccountRisk,
   getCheckedPosts,
@@ -8,10 +8,6 @@ import {
   restoreIgnored,
 } from '@/content/accountRisks';
 import type { RiskLevel, RiskResult } from '@/types/risk';
-
-vi.mock('@/utils/riskStorage', () => ({
-  saveIgnoredAccounts: vi.fn(() => Promise.resolve()),
-}));
 
 const result = (postId: string, level: RiskLevel): RiskResult => ({
   subjectType: 'post',

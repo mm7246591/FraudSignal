@@ -2,7 +2,6 @@ import { reactive } from 'vue';
 import { LEVEL_RANK } from '@/engine/riskRules';
 import type { PostKind } from '@/types/post';
 import type { AccountRisk, RiskResult } from '@/types/risk';
-import { saveIgnoredAccounts } from '@/utils/riskStorage';
 
 // 帳號標示由貼文判定推導，重新整理後由 main.ts 用快取的判定重建。
 const accounts = new Map<string, AccountRisk>();
@@ -57,14 +56,11 @@ const recordPostRisk = (
   return false;
 };
 
-/** 忽略帳號（US-03）：移除標示並記到忽略清單，之後這個帳號的貼文都不再標示。 */
+/** 忽略帳號（US-03）：移除標示並記到忽略清單，之後這個帳號的貼文都不再標示；存檔由呼叫端處理。 */
 const ignoreAccount = (handle: string) => {
   ignored.add(handle);
   accounts.delete(handle);
   checked.delete(handle);
-  saveIgnoredAccounts([...ignored]).catch((error) =>
-    console.debug('[ScamLens] 忽略清單儲存失敗', error)
-  );
 };
 
 export {

@@ -2,9 +2,10 @@
 import { computed, onMounted, ref } from 'vue';
 import SettingSwitch from '@/components/settings/SettingSwitch.vue';
 import { ENGINE_VERSION } from '@/engine/riskRules';
+import type { Platform } from '@/types/post';
 import type { VisibleRiskLevel } from '@/types/risk';
 import type { Settings } from '@/types/settings';
-import type { StoredPost } from '@/utils/riskStorage';
+import type { IgnoredAccount, StoredPost } from '@/utils/riskStorage';
 import {
   DEFAULT_SETTINGS,
   clearStoredResults,
@@ -12,6 +13,12 @@ import {
   saveIgnoredAccounts,
   saveSettings,
 } from '@/utils/riskStorage';
+
+const PLATFORM_NAMES: Record<Platform, string> = { threads: 'Threads', x: 'X' };
+const profileUrl = ({ platform, handle }: IgnoredAccount) =>
+  platform === 'x'
+    ? `https://x.com/${handle}`
+    : `https://www.threads.com/@${handle}`;
 
 const LEVEL_OPTIONS: { value: VisibleRiskLevel; label: string }[] = [
   { value: 'notice', label: '全部' },
@@ -21,7 +28,7 @@ const LEVEL_OPTIONS: { value: VisibleRiskLevel; label: string }[] = [
 
 const settings = ref<Settings>({ ...DEFAULT_SETTINGS });
 const posts = ref<StoredPost[]>([]);
-const ignoredAccounts = ref<string[]>([]);
+const ignoredAccounts = ref<IgnoredAccount[]>([]);
 const loaded = ref(false);
 const error = ref('');
 // 取消忽略、清除快取只影響之後的判定，提示已開啟的分頁要重新整理。
@@ -56,7 +63,7 @@ onMounted(() =>
   })
 );
 
-// Threads 分頁監聽 settings，改了馬上生效，不用重新整理。
+// Threads、X 分頁監聽 settings，改了馬上生效，不用重新整理。
 const update = (patch: Partial<Settings>) =>
   run(async () => {
     const next = { ...settings.value, ...patch };
@@ -64,18 +71,18 @@ const update = (patch: Partial<Settings>) =>
     await saveSettings(next);
   });
 
-const unignore = (handle: string) =>
+const unignore = (account: IgnoredAccount) =>
   run(async () => {
-    const next = ignoredAccounts.value.filter((item) => item !== handle);
+    const next = ignoredAccounts.value.filter((item) => item !== account);
     ignoredAccounts.value = next;
     await saveIgnoredAccounts(next);
-  }, `已取消忽略 @${handle}，已開啟的 Threads 分頁重新整理後恢復標示。`);
+  }, `已取消忽略 ${PLATFORM_NAMES[account.platform]} @${account.handle}，已開啟的分頁重新整理後恢復標示。`);
 
 const clearCache = () =>
   run(async () => {
     await clearStoredResults();
     posts.value = [];
-  }, '已清除判定快取，已開啟的 Threads 分頁重新整理後重新判定。');
+  }, '已清除判定快取，已開啟的分頁重新整理後重新判定。');
 </script>
 
 <template>
@@ -105,7 +112,7 @@ const clearCache = () =>
     <template v-if="loaded">
       <section class="mt-[16px]">
         <SettingSwitch
-          label="偵測 Threads 貼文"
+          label="偵測 Threads 與 X 貼文"
           :description="
             settings.enabled
               ? '瀏覽時自動檢查貼文與圖片'
@@ -168,22 +175,27 @@ const clearCache = () =>
           class="mt-[4px] max-h-[160px] divide-y divide-neutral-200 overflow-y-auto dark:divide-neutral-700"
         >
           <li
-            v-for="handle in ignoredAccounts"
-            :key="handle"
-            class="flex items-center justify-between gap-[8px] py-[6px]"
+            v-for="account in ignoredAccounts"
+            :key="`${account.platform}:${account.handle}`"
+            class="flex items-center gap-[8px] py-[6px]"
           >
+            <span
+              class="shrink-0 rounded-[4px] bg-neutral-100 px-[4px] text-[11px] leading-[16px] opacity-80 dark:bg-neutral-800"
+            >
+              {{ PLATFORM_NAMES[account.platform] }}
+            </span>
             <a
-              :href="`https://www.threads.com/@${handle}`"
+              :href="profileUrl(account)"
               target="_blank"
               rel="noreferrer"
               class="truncate hover:underline"
             >
-              @{{ handle }}
+              @{{ account.handle }}
             </a>
             <button
               type="button"
-              class="shrink-0 cursor-pointer text-[12px] leading-[16px] text-blue-600 hover:underline dark:text-blue-400"
-              @click="unignore(handle)"
+              class="ml-auto shrink-0 cursor-pointer text-[12px] leading-[16px] text-blue-600 hover:underline dark:text-blue-400"
+              @click="unignore(account)"
             >
               取消忽略
             </button>
@@ -255,10 +267,10 @@ const clearCache = () =>
 ## 主要行為
 
 - 開啟時讀取設定、忽略清單與判定快取；讀取時順便清掉過期或版本不符的判定。
-- 偵測開關、「顯示哪些標示」與「顯示已檢查的帳號」改了就寫入 settings；Threads 分頁監聽變更，馬上停止或恢復偵測、隱藏或顯示標示。
+- 偵測開關、「顯示哪些標示」與「顯示已檢查的帳號」改了就寫入 settings；Threads、X 分頁監聽變更，馬上停止或恢復偵測、隱藏或顯示標示。
 - 「顯示已檢查的帳號」預設關閉：開啟後，沒發現可疑特徵的帳號也掛灰色「已看過 N 篇貼文、M 則留言」標示，方便確認 ScamLens 有在運作；不顯示「安全」（規格 US-05、第 5、7 節）。暫停偵測時停用。
 - 「顯示哪些標示」三段：全部（提醒以上）、注意以上、只有高風險；暫停偵測時停用。
-- 已忽略的帳號可以逐一取消忽略，帳號名稱連到 Threads 個人頁；清除判定快取只刪貼文判定，設定與忽略清單保留。
+- 已忽略的帳號可以逐一取消忽略，前面標平台、帳號名稱連到該平台的個人頁；清除判定快取只刪貼文判定，設定與忽略清單保留。
 - 取消忽略與清除快取不會即時反映在已開啟的分頁，完成後提示重新整理。
 - 讀寫失敗時顯示錯誤訊息，不影響其他操作。
 

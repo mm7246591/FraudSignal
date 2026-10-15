@@ -1,5 +1,5 @@
 import { ENGINE_VERSION, LEVEL_RANK } from '@/engine/riskRules';
-import type { PostKind } from '@/types/post';
+import type { Platform, PostKind } from '@/types/post';
 import type { RiskResult } from '@/types/risk';
 import type { Settings } from '@/types/settings';
 
@@ -18,10 +18,15 @@ type StoredPost = {
   result: RiskResult;
 };
 
+/** 忽略的帳號；帳號名稱只在同一個平台內唯一。 */
+type IgnoredAccount = { platform: Platform; handle: string };
+
 // 每篇一個鍵，新增時不必重寫整份清單。
 const RESULT_PREFIX = 'result:';
 // 使用者決定以帳號為單位忽略；規格 7 原為單篇貼文的 ignoredPostKeys。
+// 存成「平台:帳號」；只支援 Threads 時存的是帳號名稱，讀取時當成 Threads（帳號名稱不含冒號）。
 const IGNORED_KEY = 'ignoredAccounts';
+const PLATFORMS: Platform[] = ['threads', 'x'];
 // 規格 9 容量上限；每筆約 1KB，遠低於 chrome.storage.local 的 10MB。
 const MAX_RESULTS = 1000;
 const SETTINGS_KEY = 'settings';
@@ -71,15 +76,28 @@ const parseSettings = (raw: unknown): Settings => {
   };
 };
 
+const parseIgnored = (raw: unknown): IgnoredAccount[] =>
+  (Array.isArray(raw) ? raw : [])
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => {
+      const [platform, handle] = entry.includes(':')
+        ? entry.split(':')
+        : ['threads', entry];
+      return { platform: platform as Platform, handle };
+    })
+    .filter(({ platform, handle }) => PLATFORMS.includes(platform) && handle);
+
+const toIgnoredEntry = ({ platform, handle }: IgnoredAccount) =>
+  `${platform}:${handle}`;
+
 /** 讀取快取並順便清掉失效的判定。容量只在頁面載入時整理，同一分頁內可暫時超過。 */
 const loadStoredRisks = async () => {
   const stored = await chrome.storage.local.get(null);
   const { posts, staleKeys } = partitionStored(stored, Date.now());
   if (staleKeys.length) await chrome.storage.local.remove(staleKeys);
-  const ignored = stored[IGNORED_KEY];
   return {
     posts,
-    ignoredAccounts: Array.isArray(ignored) ? (ignored as string[]) : [],
+    ignoredAccounts: parseIgnored(stored[IGNORED_KEY]),
     settings: parseSettings(stored[SETTINGS_KEY]),
   };
 };
@@ -91,8 +109,25 @@ const saveStoredPost = async (post: StoredPost) => {
 };
 
 // ponytail: 忽略清單沒有上限也不會過期；每筆只是一個帳號名稱，設定頁可以取消忽略。
-const saveIgnoredAccounts = async (handles: string[]) => {
-  await chrome.storage.local.set({ [IGNORED_KEY]: handles });
+const saveIgnoredAccounts = async (accounts: IgnoredAccount[]) => {
+  await chrome.storage.local.set({
+    [IGNORED_KEY]: accounts.map(toIgnoredEntry),
+  });
+};
+
+/**
+ * 加入忽略清單（content script）。先讀再寫，不覆蓋其他分頁、其他平台忽略的帳號。
+ * ponytail: 兩個分頁同時忽略可能少存一筆，要處理再改成每個帳號一個鍵。
+ */
+const addIgnoredAccount = async (account: IgnoredAccount) => {
+  const { [IGNORED_KEY]: raw } = await chrome.storage.local.get(IGNORED_KEY);
+  const accounts = parseIgnored(raw);
+  if (
+    accounts.some((item) => toIgnoredEntry(item) === toIgnoredEntry(account))
+  ) {
+    return;
+  }
+  await saveIgnoredAccounts([...accounts, account]);
 };
 
 /** 清除所有貼文判定（設定頁）；設定與忽略清單保留。 */
@@ -125,11 +160,13 @@ export {
   DEFAULT_SETTINGS,
   partitionStored,
   parseSettings,
+  parseIgnored,
   loadStoredRisks,
   saveStoredPost,
   saveIgnoredAccounts,
+  addIgnoredAccount,
   clearStoredResults,
   saveSettings,
   onSettingsChanged,
 };
-export type { StoredPost };
+export type { StoredPost, IgnoredAccount };

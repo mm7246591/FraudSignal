@@ -38,10 +38,10 @@ export default defineConfig({
           extension_pages:
             "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';",
         },
-        // 規格 8：最小權限，不使用 <all_urls>；第一版先做 Threads。
+        // 規格 8：最小權限，不使用 <all_urls>；支援 Threads 與 X。
         content_scripts: [
           {
-            matches: ['https://www.threads.com/*'],
+            matches: ['https://www.threads.com/*', 'https://x.com/*'],
             js: ['src/content/main.ts'],
           },
         ],

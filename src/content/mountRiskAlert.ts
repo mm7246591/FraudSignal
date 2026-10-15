@@ -1,12 +1,12 @@
 import { createApp, reactive } from 'vue';
 import type { AccountRisk } from '@/types/risk';
 import type { Settings } from '@/types/settings';
-import { DEFAULT_SETTINGS } from '@/utils/riskStorage';
+import { DEFAULT_SETTINGS, addIgnoredAccount } from '@/utils/riskStorage';
 import CheckedAccountView from '@/views/risk-alert/CheckedAccountView.vue';
 import RiskAlertView from '@/views/risk-alert/RiskAlertView.vue';
 import styles from '@/assets/style.css?inline';
 import { getCheckedPosts, ignoreAccount } from './accountRisks';
-import { getAvatarFrame } from './threadsAdapter';
+import { adapter } from './platform';
 
 const HOST_ATTR = 'data-scamlens';
 // 標示種類：risk（有風險）、checked（已檢查、未發現可疑）。
@@ -46,6 +46,9 @@ const isDarkTheme = (el: Element) => {
 // 忽略帳號後，畫面上這個帳號的所有提示一起移除。
 const ignore = (authorHandle: string) => {
   ignoreAccount(authorHandle);
+  addIgnoredAccount({ platform: adapter.platform, handle: authorHandle }).catch(
+    (error) => console.debug('[ScamLens] 忽略清單儲存失敗', error)
+  );
   document
     .querySelectorAll(`[${HOST_ATTR}="${authorHandle}"]`)
     .forEach((host) => host.remove());
@@ -74,19 +77,23 @@ const syncAccountBadge = (
     return;
   }
   existing?.remove();
-  const frame = getAvatarFrame(container, authorHandle);
+  const frame = adapter.getAvatarFrame(container, authorHandle);
   if (!kind || !frame) return;
 
-  // 絕對定位，不改變 Threads 版面。頭像是圓形：標示圓心放在頭像圓心往右下 45° 的方向，
+  // 絕對定位，不改變原站版面。頭像是圓形：標示圓心放在頭像圓心往右下 45° 的方向，
   // 距離 = 頭像半徑 + 標示半徑 + 1px，剛好貼在圓外不蓋住頭像（cos45° ≈ 0.7071）。
+  // 頭像直徑等於外框寬（X 未登入版的外框比頭像高），兩軸都用外框寬計算。
+  // ponytail: 掛上時算一次；兩個平台的頭像都是固定 px，改版變成依視窗縮放再改成跟著重算。
   if (getComputedStyle(frame).position === 'static') {
     frame.style.position = 'relative';
   }
   const host = document.createElement('span');
   host.setAttribute(HOST_ATTR, authorHandle);
   host.setAttribute(KIND_ATTR, kind);
-  const offset = `(50% + ${BADGE_SIZE / 2 + 1}px) * 0.7071 - ${BADGE_SIZE / 2}px`;
-  host.style.cssText = `position:absolute;left:calc(50% + ${offset});top:calc(50% + ${offset});z-index:1;line-height:0`;
+  const radius = frame.offsetWidth / 2;
+  const offset =
+    radius + (radius + BADGE_SIZE / 2 + 1) * 0.7071 - BADGE_SIZE / 2;
+  host.style.cssText = `position:absolute;left:${offset}px;top:${offset}px;z-index:1;line-height:0`;
   const shadow = host.attachShadow({ mode: 'open' });
   const style = document.createElement('style');
   style.textContent = styles;

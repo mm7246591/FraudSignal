@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ENGINE_VERSION } from '@/engine/riskRules';
 import {
   DEFAULT_SETTINGS,
+  parseIgnored,
   parseSettings,
   partitionStored,
 } from '@/utils/riskStorage';
@@ -99,5 +100,20 @@ describe('parseSettings', () => {
     expect(
       parseSettings({ enabled: false, minLevel: 3, showChecked: 'yes' })
     ).toEqual({ enabled: false, minLevel: 'notice', showChecked: false });
+  });
+});
+
+describe('parseIgnored 忽略清單', () => {
+  it('讀取「平台:帳號」，舊版只有帳號名稱的當成 Threads', () => {
+    expect(parseIgnored(['x:NASA', 'threads:someone', 'legacy'])).toEqual([
+      { platform: 'x', handle: 'NASA' },
+      { platform: 'threads', handle: 'someone' },
+      { platform: 'threads', handle: 'legacy' },
+    ]);
+  });
+
+  it('不認得的平台與格式不對的項目略過', () => {
+    expect(parseIgnored(['ig:someone', 'x:', 1, null])).toEqual([]);
+    expect(parseIgnored('x:NASA')).toEqual([]);
   });
 });
