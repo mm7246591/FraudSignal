@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toOutboundUrl } from '@/content/threadsAdapter';
+import { pickSrcsetUrl, toOutboundUrl } from '@/content/threadsAdapter';
 
 describe('toOutboundUrl', () => {
   it('解開 l.threads.com 轉址', () => {
@@ -23,5 +23,27 @@ describe('toOutboundUrl', () => {
     expect(toOutboundUrl('https://line.me/ti/p/abc')).toBe(
       'https://line.me/ti/p/abc'
     );
+  });
+});
+
+describe('pickSrcsetUrl', () => {
+  // Threads 實際格式：逗號後沒有空白。
+  const srcset = (...widths: number[]) =>
+    widths.map((w) => `https://cdn.example/${w}.webp?a=1&b=2 ${w}w`).join(',');
+
+  it('挑寬度不超過 1080 的最大張', () => {
+    expect(pickSrcsetUrl(srcset(2160, 1080, 720, 640))).toBe(
+      'https://cdn.example/1080.webp?a=1&b=2'
+    );
+    expect(pickSrcsetUrl(srcset(1500, 720, 640))).toBe(
+      'https://cdn.example/720.webp?a=1&b=2'
+    );
+  });
+
+  it('都超過 1080 時挑最小張；沒有 srcset 時回傳 undefined', () => {
+    expect(pickSrcsetUrl(srcset(2160, 1440))).toBe(
+      'https://cdn.example/1440.webp?a=1&b=2'
+    );
+    expect(pickSrcsetUrl('')).toBeUndefined();
   });
 });

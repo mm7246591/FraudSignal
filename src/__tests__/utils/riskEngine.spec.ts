@@ -10,6 +10,7 @@ const post = (visibleText: string, outboundUrls: string[] = []) =>
     authorHandle: 'someone',
     visibleText,
     outboundUrls,
+    imageUrls: [],
     observedAt: 0,
   }) satisfies PostSnapshot;
 
@@ -263,6 +264,36 @@ describe('evaluatePost 留言（社群反應）', () => {
       )
     ).toBe('notice');
     expect(levelWith(text, comments('+1', '+1', '+1', '已私', '已私'))).toBe(
+      'notice'
+    );
+  });
+});
+
+// docs/risk-rules.md 第 7 節：圖片文字跟內文走同一套規則。
+describe('evaluatePost 圖片文字', () => {
+  const evaluate = (text: string, imageText: string) =>
+    evaluatePost(post(text), undefined, [], imageText);
+
+  it('內文正常、圖片寫保證獲利＋投資群組 → 高風險，證據標示圖片', () => {
+    const result = evaluate(
+      '今天分享一下',
+      '保證 獲 利 穩 賺 不 賠\n名 額 有 限 立即 加 入 投資 群 組'
+    );
+    expect(result.level).toBe('high');
+    expect(result.signals.every(({ source }) => source === 'image')).toBe(true);
+  });
+
+  it('只有圖片沒有內文也會判定', () => {
+    expect(evaluate('', '保證獲利，快加入投資群組').level).toBe('high');
+  });
+
+  it('圖片跟內文命中同一條規則時只列內文', () => {
+    const { signals } = evaluate('保證獲利', '保證獲利');
+    expect(signals.map(({ source }) => source)).toEqual(['text']);
+  });
+
+  it('圖片在提醒防詐 → 最多提醒', () => {
+    expect(evaluate('', '小心詐騙！有人說保證獲利叫你加入投資群組').level).toBe(
       'notice'
     );
   });

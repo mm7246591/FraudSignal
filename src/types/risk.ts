@@ -20,7 +20,8 @@ type RiskSignal = {
   label: string;
   /** 觸發的原文片段或網址。 */
   evidence: string;
-  source: 'text' | 'link' | 'blocklist' | 'comment';
+  /** image：貼文照片裡辨識出的文字。 */
+  source: 'text' | 'image' | 'link' | 'blocklist' | 'comment';
 };
 
 /**

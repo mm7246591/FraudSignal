@@ -6,6 +6,10 @@ const THREADS_HOST = /(^|\.)threads\.(com|net)$/;
 const REDIRECT_HOST = /^l\.threads\.(com|net)$/;
 // 作者、話題標籤、時間、互動數都在這些元素內，不算內文。
 const NON_BODY = 'a, time, [role="button"]';
+// 貼文照片在 <picture> 內；頭像、影片縮圖不是（2026-10-15 實測）。
+const PHOTO_SELECTOR = 'picture img';
+// 圖片文字辨識用的寬度上限：1080 夠看清小字，再大只會變慢。
+const OCR_WIDTH = 1080;
 
 /** 外部連結：解開 l.threads.com 轉址；站內或非 http(s) 連結回傳 null。 */
 const toOutboundUrl = (href: string): string | null => {
@@ -22,6 +26,27 @@ const toOutboundUrl = (href: string): string | null => {
   if (!['http:', 'https:'].includes(url.protocol)) return null;
   return THREADS_HOST.test(url.hostname) ? null : url.href;
 };
+
+/**
+ * 從 srcset 挑寬度不超過 OCR_WIDTH 的最大張；都比較大時挑最小張，沒有 srcset 時回傳 undefined。
+ * Threads 的 srcset 以「 1080w,」分隔，逗號後沒有空白，網址本身不含空白。
+ */
+const pickSrcsetUrl = (srcset: string) => {
+  const candidates = [...srcset.matchAll(/([^\s,]\S*)\s+(\d+)w/g)]
+    .map(([, url, width]) => ({ url, width: Number(width) }))
+    .sort((a, b) => b.width - a.width);
+  return (
+    candidates.find(({ width }) => width <= OCR_WIDTH) ?? candidates.at(-1)
+  )?.url;
+};
+
+const getImageUrls = (container: Element) => [
+  ...new Set(
+    [...container.querySelectorAll<HTMLImageElement>(PHOTO_SELECTOR)]
+      .map((img) => pickSrcsetUrl(img.srcset) ?? img.currentSrc)
+      .filter(Boolean)
+  ),
+];
 
 // 標頭列：time 往上第一個也包含作者連結的元素，內有「· 作者」標籤、話題與時間。
 const getHeaderRow = (
@@ -83,8 +108,9 @@ const extractPost = (container: Element): PostSnapshot | null => {
         .filter((url): url is string => url !== null)
     ),
   ];
-  if (!visibleText && !outboundUrls.length) {
-    console.debug('[ScamLens] skip: 沒有文字或外部連結', container);
+  const imageUrls = getImageUrls(container);
+  if (!visibleText && !outboundUrls.length && !imageUrls.length) {
+    console.debug('[ScamLens] skip: 沒有文字、外部連結或照片', container);
     return null;
   }
   return {
@@ -94,6 +120,7 @@ const extractPost = (container: Element): PostSnapshot | null => {
     authorHandle,
     visibleText,
     outboundUrls,
+    imageUrls,
     observedAt: Date.now(),
   };
 };
@@ -192,6 +219,7 @@ const observeThreadsFeed = (
 
 export {
   toOutboundUrl,
+  pickSrcsetUrl,
   findPostContainers,
   getPostAuthor,
   getRepliedPostId,

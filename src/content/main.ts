@@ -2,6 +2,7 @@ import type { PostSnapshot } from '@/types/post';
 import type { RiskResult } from '@/types/risk';
 import { evaluatePost, loadBlocklist } from '@/utils/riskEngine';
 import { getAccountRisk, recordPostRisk, restoreIgnored } from './accountRisks';
+import { recognizeImages } from './imageText';
 import { syncAccountBadge } from './mountRiskAlert';
 import { loadStoredRisks, saveStoredPost } from './riskStorage';
 import {
@@ -16,6 +17,8 @@ const results = new Map<string, Promise<RiskResult>>();
 const posts = new Map<string, PostSnapshot>();
 // 單篇貼文頁的留言：主貼文 postId → 留言 postId → 留言。
 const replies = new Map<string, Map<string, PostSnapshot>>();
+// postId → 照片辨識出的文字（docs/risk-rules.md 第 7 節）。
+const imageTexts = new Map<string, string>();
 
 const analyze = async (post: PostSnapshot, previous?: RiskResult) => {
   // 清單載入失敗時退回只用本地規則（規格 9）。
@@ -23,22 +26,23 @@ const analyze = async (post: PostSnapshot, previous?: RiskResult) => {
     ? await loadBlocklist().catch(() => undefined)
     : undefined;
   const comments = [...(replies.get(post.postId)?.values() ?? [])];
-  const result = evaluatePost(post, blocklist, comments);
-  // 每篇只在第一次分析、或留言讓等級改變時輸出，方便對照頭像上的提示。
+  const imageText = imageTexts.get(post.postId);
+  const result = evaluatePost(post, blocklist, comments, imageText);
+  // 每篇只在第一次分析、或留言／圖片文字讓等級改變時輸出，方便對照頭像上的提示。
   if (result.level !== previous?.level) {
     const log = result.level === 'unknown' ? console.debug : console.info;
     log(
-      `[ScamLens] ${result.level} @${post.authorHandle}${previous ? '（依留言更新）' : ''}`,
+      `[ScamLens] ${result.level} @${post.authorHandle}${previous ? '（依留言或圖片文字更新）' : ''}`,
       post.postUrl,
       result.signals,
-      post
+      { ...post, imageText }
     );
   }
-  // ponytail: 沒風險的不存，本地規則重算比讀寫 storage 快；加入 AI／網址查詢（規格 M3）再存。
-  if (result.level !== 'unknown') {
+  // ponytail: 沒風險的不存，本地規則重算比讀寫 storage 快；圖片辨識很慢，辨識過的一律存。
+  if (result.level !== 'unknown' || imageText !== undefined) {
     const { postId, authorHandle, postUrl } = post;
-    saveStoredPost({ postId, authorHandle, postUrl, result }).catch((error) =>
-      console.debug('[ScamLens] 判定儲存失敗', error)
+    saveStoredPost({ postId, authorHandle, postUrl, imageText, result }).catch(
+      (error) => console.debug('[ScamLens] 判定儲存失敗', error)
     );
   }
   return result;
@@ -61,12 +65,8 @@ const markAccount = async (post: PostSnapshot, container?: Element) => {
   }
 };
 
-const addReply = (postId: string, reply: PostSnapshot) => {
-  const list = replies.get(postId) ?? new Map<string, PostSnapshot>();
-  replies.set(postId, list);
-  if (list.has(reply.postId)) return;
-  list.set(reply.postId, reply);
-  // 主貼文還沒分析時，之後分析會一起算進這則留言。
+/** 留言或圖片文字增加時重新判定；還沒分析過的貼文，之後分析會一起算進去。 */
+const reanalyze = (postId: string) => {
   const post = posts.get(postId);
   const previous = results.get(postId);
   if (!post || !previous) return;
@@ -78,6 +78,22 @@ const addReply = (postId: string, reply: PostSnapshot) => {
   markAccount(post);
 };
 
+const addReply = (postId: string, reply: PostSnapshot) => {
+  const list = replies.get(postId) ?? new Map<string, PostSnapshot>();
+  replies.set(postId, list);
+  if (list.has(reply.postId)) return;
+  list.set(reply.postId, reply);
+  reanalyze(postId);
+};
+
+// 先用內文判定、馬上顯示（規格 2.3 警告延遲 1 秒內），圖片辨識完再重新判定。
+const readImages = async ({ postId, imageUrls }: PostSnapshot) => {
+  const text = await recognizeImages(imageUrls);
+  if (text === undefined) return;
+  imageTexts.set(postId, text);
+  reanalyze(postId);
+};
+
 const start = async () => {
   // 讀不到快取時照常偵測，只是沒有之前的標示（規格 9：例外不阻斷原站）。
   const stored = await loadStoredRisks().catch((error) => {
@@ -86,20 +102,26 @@ const start = async () => {
   });
   restoreIgnored(stored.ignoredAccounts);
   // 快取的貼文不再重新分析（US-04），帳號標示先建好，看到該帳號的貼文就會掛上。
-  stored.posts.forEach(({ postId, authorHandle, postUrl, result }) => {
-    results.set(postId, Promise.resolve(result));
-    recordPostRisk(authorHandle, postUrl, result);
-  });
-  if (stored.posts.length) {
-    console.info(
-      `[ScamLens] 從快取還原 ${stored.posts.length} 篇可疑貼文`,
-      stored.posts
-    );
+  stored.posts.forEach(
+    ({ postId, authorHandle, postUrl, imageText, result }) => {
+      results.set(postId, Promise.resolve(result));
+      if (imageText !== undefined) imageTexts.set(postId, imageText);
+      recordPostRisk(authorHandle, postUrl, result);
+    }
+  );
+  const flagged = stored.posts.filter(
+    ({ result }) => result.level !== 'unknown'
+  );
+  if (flagged.length) {
+    console.info(`[ScamLens] 從快取還原 ${flagged.length} 篇可疑貼文`, flagged);
   }
 
   observeThreadsFeed((post, container) => {
     posts.set(post.postId, post);
-    if (!results.has(post.postId)) results.set(post.postId, analyze(post));
+    if (!results.has(post.postId)) {
+      results.set(post.postId, analyze(post));
+      if (post.imageUrls.length) readImages(post);
+    }
     markAccount(post, container);
     // 留言本身也照一般貼文判定（標示留言者），同時當作主貼文的社群反應。
     const repliedPostId = getRepliedPostId(container);

@@ -49,15 +49,16 @@ const toOriginal = (
   return text.slice(start, last + lastLength);
 };
 
-const matchText = (text: string): RiskSignal[] => {
+const matchText = (
+  text: string,
+  source: Extract<RiskSignal['source'], 'text' | 'image'>
+): RiskSignal[] => {
   const { normalized, positions } = normalize(text);
   return TEXT_RULES.flatMap(({ id, category, strength, label, pattern }) => {
     const match = pattern.exec(normalized);
     if (!match) return [];
     const evidence = toOriginal(text, positions, match);
-    return [
-      { ruleId: id, category, strength, label, evidence, source: 'text' },
-    ];
+    return [{ ruleId: id, category, strength, label, evidence, source }];
   });
 };
 
@@ -211,28 +212,40 @@ const decideLevel = (signals: RiskSignal[], warningContext: boolean) => {
     level = 'caution';
   else if (strongCategories.size >= 1) level = 'notice';
   // 防詐提醒貼文會引用詐騙話術；沒有連結證據時只給「提醒」。
-  const textOnly = signals.every((signal) => signal.source === 'text');
+  const textOnly = signals.every(
+    ({ source }) => source === 'text' || source === 'image'
+  );
   return warningContext && textOnly && level !== 'unknown' ? 'notice' : level;
 };
 
-/** comments：單篇貼文頁上看得到的留言，只當佐證（docs/risk-rules.md 第 6 節）。 */
+/**
+ * comments：單篇貼文頁上看得到的留言，只當佐證（docs/risk-rules.md 第 6 節）。
+ * imageText：貼文照片辨識出的文字，跟內文走同一套規則（第 7 節）。
+ */
 const evaluatePost = (
   post: PostSnapshot,
   blocklist?: Blocklist,
-  comments: Comment[] = []
+  comments: Comment[] = [],
+  imageText = ''
 ): RiskResult => {
   const urls = post.outboundUrls.map((url) => new URL(url));
   const hasOfficialCommerce = urls.some((url) =>
     OFFICIAL_COMMERCE_HOSTS.has(hostOf(url))
   );
+  const textSignals = matchText(post.visibleText, 'text');
+  // 圖片跟內文命中同一條規則時只列內文。
+  const imageSignals = matchText(imageText, 'image').filter(
+    ({ ruleId }) => !textSignals.some((signal) => signal.ruleId === ruleId)
+  );
   const own = [
-    ...matchText(post.visibleText),
+    ...textSignals,
+    ...imageSignals,
     ...matchLinks(urls, blocklist),
   ].filter(
     (signal) => !(hasOfficialCommerce && signal.ruleId === 'prepay-only')
   );
-  const warningContext = WARNING_CONTEXT.test(
-    normalize(post.visibleText).normalized
+  const warningContext = [post.visibleText, imageText].some((text) =>
+    WARNING_CONTEXT.test(normalize(text).normalized)
   );
   // 貼文本身沒有訊號時不看留言，避免「大家有被詐騙過嗎」這類貼文被標示；
   // 貼文在提醒防詐時，留言自然也會講到詐騙，同樣不計。作者自己的留言不算。

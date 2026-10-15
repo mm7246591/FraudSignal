@@ -218,14 +218,43 @@
 
 實作：`src/constants/riskRules.ts`（`COMMUNITY_WARNING`、`SHILL_PRAISE`）、`src/utils/riskEngine.ts`（`matchComments`）、`src/content/threadsAdapter.ts`（`getRepliedPostId`）、`src/content/main.ts`（收集留言、重新判定）。
 
-## 7. 圖片文字（OCR，另一個步驟）
+## 7. 圖片文字（OCR）
 
-使用者決定要做。初步方向，實作前再確認：
+使用者決定要做。詐團常把話術做成圖卡，內文只寫「詳情看圖」，只看文字會漏掉。
 
-- 用 Tesseract.js（WebAssembly）在本機辨識繁體中文，免費、不上傳圖片；語言資料約 2～12MB，需要實測準確度。
-- 辨識很吃 CPU，要放在擴充自己的背景頁（offscreen document）執行，content script 不能直接開 worker；需要新增 `offscreen` 權限與圖片網域權限。
-- 只辨識進入畫面的貼文圖片，一次一張、結果快取，避免捲動卡頓（規格書第 9 節）。
-- 辨識出的文字併入 `visibleText` 後走同一套規則，證據標示「圖片文字」。
+### 7.1 辨識方式
+
+- 用 Tesseract.js 7（WebAssembly）在本機辨識繁體中文（`chi_tra`），免費、不上傳圖片。
+- 所有檔案都打包在擴充功能裡，不從 CDN 載入（MV3 不允許遠端程式碼）：
+  - worker：`tesseract.js/dist/worker.min.js`。
+  - 核心：只帶 SIMD 版的 `tesseract-core-simd-lstm.wasm.js`（約 3.9MB），Chrome 91 起都支援。
+  - 語言檔：`public/tessdata/chi_tra.traineddata.gz`（約 1.6MB），取自 `@tesseract.js-data/chi_tra` 1.0.0 的 `4.0.0_best_int`。Tesseract 依「langPath／語言.traineddata.gz」組網址，檔名不能加 hash，所以放 `public/`。
+- content script 不能開擴充功能的 worker，所以辨識在離屏頁（offscreen document）執行：content script → 背景 service worker（建立離屏頁、轉送）→ 離屏頁。
+- 權限：只多了 `offscreen`，安裝時不會跳警告。Threads 的圖片 CDN（`*.fbcdn.net`）回傳 `Access-Control-Allow-Origin: *`，不需要圖片網域權限（2026-10-15 實測）。
+- manifest 的 CSP 要加 `'wasm-unsafe-eval'`，Chrome 預設的擴充功能 CSP 會停用 WebAssembly；這是 Chrome 允許的最低政策。
+- Tesseract 預設用 `blob:` 網址開 worker，擴充功能的 CSP 不允許，要設 `workerBlobURL: false`。
+- Tesseract.js 7 的語言檔若用 `{ code, data }` 物件傳入，初始化會誤用 `data` 欄位，所以不用這個寫法。
+- 中文語言檔帶了舊引擎的參數，LSTM 版核心沒有，每次初始化都會用 `console.error` 印 8 行「Warning: Parameter not found」，被列進擴充功能的「錯誤」頁，但不影響辨識。改用含舊引擎的完整核心可以消掉，但實測辨識慢約 6 倍（同一張圖 1.2～2.2 秒 vs 0.2～0.4 秒）。所以在 worker 外包一層 `src/offscreen/tesseractWorker.js`，濾掉這一種初始化訊息。這個檔很小，要用 `?url&no-inline` 匯入，不然會被內嵌成 `data:` 網址，沒辦法帶參數。
+- 同一個 worker wrapper 將 `Image too small to scale!! (...)` 與 `Line cannot be recognized!!` 精確轉為 `console.debug`：這是某個切出的文字區塊無法辨識的診斷，尺寸不一定是原始照片尺寸。保留其他錯誤及辨識 Promise 的失敗回傳；此處只調整記錄層級，不提升辨識率，也不代表整張圖片已完整辨識。
+
+### 7.2 辨識哪些圖片
+
+- 只辨識 `<picture>` 內的貼文照片；頭像、影片縮圖不在 `<picture>` 內（2026-10-15 實測）。Threads 的貼文照片沒有替代文字（alt 是空的），不能直接拿來用。
+- 從 srcset 挑寬度不超過 1080 的最大張：小字看得清楚，再大只會變慢。實測 1080 寬約 1.7～2 秒、720 寬約 1.2 秒，第一次載入引擎約 0.6 秒。
+- 每篇最多 3 張：詐騙圖卡的重點通常在前面，輪播十張全辨識太吃 CPU。
+- 一次只辨識一張；後進先出，快速捲動時先辨識剛進入畫面的貼文（規格書第 9 節）。已離開畫面的貼文仍會辨識，之後若要更省 CPU 再改成可取消。
+- 30 秒沒回應就放棄這張，不卡住後面的佇列。全部失敗時不存結果，下次載入頁面再試。
+
+### 7.3 怎麼併入判定
+
+- 先用內文判定、馬上顯示，圖片辨識完再重新判定；等級只會升高。
+- 辨識出的文字走第 4、5 節同一套文字規則，證據標示「圖片文字」（`source: 'image'`）。Tesseract 會在中文字之間加空白，送回前先去掉；第 4.5 節的正規化本來也會去空白。
+- 圖片跟內文命中同一條規則時只列內文。
+- 圖片在提醒防詐（第 5 節的提醒情境）時，跟內文一樣最多只到「提醒」。
+- 辨識過圖片的貼文，不論有沒有風險都存進快取，連同辨識出的文字（`imageText`），重新整理後不用重新辨識；留言讓主貼文重新判定時也會一起算。
+- 中文模型辨識英文圖片時會出現零散的錯字；規則比對的是完整詞組，零散錯字不會誤觸。
+
+實作：`src/content/threadsAdapter.ts`（`pickSrcsetUrl`、照片網址）、`src/content/imageText.ts`（佇列）、`src/background/main.ts`（建立離屏頁）、`src/offscreen/main.ts`（Tesseract）、`src/utils/riskEngine.ts`（`imageText` 參數）。
 
 ## 8. 這版不處理
 - **冒名名人清單**：名單要持續維護，也無法驗證帳號真假。

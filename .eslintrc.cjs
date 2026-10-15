@@ -33,8 +33,11 @@ module.exports = {
     'no-use-before-define': 'off',
     'no-unused-vars': 'off',
     'import/prefer-default-export': 'off',
-    // Vite 的 ?raw、?inline 匯入由打包工具處理，import 外掛解析不到。
-    'import/no-unresolved': ['error', { ignore: ['[?](raw|inline)$'] }],
+    // Vite 的 ?raw、?inline、?url（可加 &no-inline）匯入由打包工具處理，import 外掛解析不到。
+    'import/no-unresolved': [
+      'error',
+      { ignore: ['[?](raw|inline|url)(&no-inline)?$'] },
+    ],
     'import/extensions': [
       'error',
       'ignorePackages',

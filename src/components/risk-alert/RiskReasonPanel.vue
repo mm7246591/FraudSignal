@@ -41,7 +41,11 @@ const emit = defineEmits<{ ignore: [] }>();
           :key="`${signal.ruleId}:${signal.evidence}`"
         >
           <p>{{ signal.label }}</p>
-          <p class="break-all opacity-70">「{{ signal.evidence }}」</p>
+          <p class="break-all opacity-70">
+            {{ signal.source === 'image' ? '圖片文字：' : '' }}「{{
+              signal.evidence
+            }}」
+          </p>
         </li>
       </ul>
     </section>
@@ -76,7 +80,7 @@ const emit = defineEmits<{ ignore: [] }>();
 ## 主要行為
 
 - 以 `popover` 顯示在頂層，不會被 Threads 的版面裁切；點外面或按 Esc 關閉。
-- 每篇貼文顯示等級與「查看貼文」連結（Threads 站內網址），下方列出訊號說明與原文證據。
+- 每篇貼文顯示等級與「查看貼文」連結（Threads 站內網址），下方列出訊號說明與原文證據；證據來自貼文照片時前面標「圖片文字：」。
 - 底部「忽略此帳號，之後不再提示」只送出 ignore，移除標示與記錄由父層處理（規格 US-03）。
 - 外部連結證據只顯示文字，不可點擊。
 - 底部固定顯示「不代表此帳號已確認為詐騙」與 165 查證說明（規格 5 禁止定性文案）。

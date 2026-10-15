@@ -2,13 +2,15 @@ import { ENGINE_VERSION } from '@/constants/riskRules';
 import type { RiskResult } from '@/types/risk';
 
 /**
- * 有風險的貼文判定，存在 chrome.storage.local（規格 FR-05）。重新整理後用來還原帳號標示，
- * 也讓同一篇貼文不再重新分析（US-04）。
+ * 有風險、或辨識過圖片文字的貼文判定，存在 chrome.storage.local（規格 FR-05）。
+ * 重新整理後用來還原帳號標示，也讓同一篇貼文不再重新分析、重新辨識圖片（US-04）。
  */
 type StoredPost = {
   postId: string;
   authorHandle: string;
   postUrl: string;
+  /** 圖片辨識出的文字；留言讓主貼文重新判定時要一起算。 */
+  imageText?: string;
   result: RiskResult;
 };
 
