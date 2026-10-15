@@ -16,6 +16,8 @@
     "update:blocklist": "node scripts/update-blocklist.mjs"
   },
   "dependencies": {
+    "tesseract.js": "^7.0.0",
+    "tesseract.js-core": "^7.0.0",
     "vue": "^3.5.42"
   },
   "devDependencies": {
