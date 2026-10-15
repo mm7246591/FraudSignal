@@ -47,6 +47,22 @@ src/
         └── types/           # 此頁專屬
 ```
 
+## Export 風格
+
+- composable 檔（匯出 `useXxx`，含 `src/composables/` 與各層就近放置的 `composables/`）維持逐一 `export`，宣告前直接加 `export`。
+- 其餘一律集中匯出：宣告時不加 `export`，檔尾以 `export { ... }` 列出值、`export type { ... }` 列出型別。適用於 `content/`、`utils/`、`constants/`、`types/` 與其他非 composable 的檔案。
+- `enum` 同時是值與型別，集中匯出時要放在 `export { ... }`，不可放進 `export type { ... }`，否則執行期取不到。
+- `export default`（設定檔）與 `export * from`、`export { ... } from` 的 re-export 原樣保留，不受此規則影響。
+- 集中匯出的清單依宣告順序排列，不另外排序，方便對照檔案內容。
+
+## 樣式
+
+- 使用 Tailwind CSS v3，樣式直接寫在 template 的 `class`；content script 注入的 UI 在 Shadow DOM 內載入 Tailwind，不影響 Threads 頁面。
+- 固定間距、尺寸、圓角、字級、行高與線寬使用明確 px，例如 `mt-[4px]`、`w-[288px]`、`rounded-[12px]`、`text-[12px]`、`leading-[16px]`、`border-[1px]`；不使用 `mt-1`、`w-72`、`rounded-xl`、`text-xs`、`border` 這類預設級距。
+- `0`、`auto`、`%`／視窗單位，以及顏色、字重、透明度、陰影、縮放維持 Tailwind 預設 class，例如 `m-0`、`inset-auto`、`text-red-600`、`font-semibold`、`shadow-lg`。
+- `text-xs` 這類字級 class 同時設定行高，改寫成 px 時要一併寫 `leading-[...]`，避免行高改變。
+- 元件 `<spec lang="md">` 的「狀態與限制」需依上述規則說明樣式。
+
 ## Vue SFC 規範
 
 - SFC 區塊順序為 `<script setup lang="ts">`、`<template>`、`<style scoped>`、`<spec lang="md">`。
